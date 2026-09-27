@@ -1,9 +1,14 @@
 /**
- * Capa 2 & 3: Modelo de Datos, Currículo y Motor de Evaluación.
+ * Capa 2, 3 & 4: Modelo de Datos, Currículo, Evaluador y Orquestador de Lección.
  * Tipos e interfaces de dominio para los ejercicios de programación en C.
  */
 
 export type ExerciseType = "fill-in-the-blank";
+
+/**
+ * Estados finitos posibles para el flujo de la lección interactiva.
+ */
+export type LessonStatus = "idle" | "checking" | "success" | "error" | "completed";
 
 /**
  * Token delimitador reservado utilizado en `codeTemplate`.
@@ -46,4 +51,3 @@ export interface EvaluationResult {
   /** Mensaje amigable con feedback contextual para la experiencia de aprendizaje */
   feedback: string;
 }
-

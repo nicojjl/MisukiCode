@@ -1,8 +1,8 @@
 import React from "react";
-import { Exercise, BLANK_TOKEN, LessonStatus } from "@/types/exercise";
+import { Exercise, BLANK_TOKEN, LessonStatus } from "../../types/exercise";
 
 interface CardProps {
-  exercise?: Exercise;
+  exercise?: Exercise | null;
   userInput?: string;
   setUserInput?: (value: string) => void;
   status?: LessonStatus;
@@ -58,6 +58,7 @@ export const Card: React.FC<CardProps> = ({
 
         <input
           type="text"
+          maxLength={20}
           value={userInput}
           onChange={(e) => setUserInput?.(e.target.value)}
           disabled={status === "checking" || status === "success"}
