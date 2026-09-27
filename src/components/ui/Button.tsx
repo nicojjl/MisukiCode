@@ -1,0 +1,38 @@
+import React from "react";
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "inactive";
+  children: React.ReactNode;
+}
+
+/**
+ * Componente base de botón táctil estilo Duolingo.
+ * Para la Capa 1 se provee el estado inactivo base con bordes redondeados y tipografía consistente.
+ */
+export const Button: React.FC<ButtonProps> = ({
+  children,
+  variant = "inactive",
+  disabled = true,
+  className = "",
+  ...props
+}) => {
+  const baseStyles =
+    "px-8 py-3.5 rounded-2xl font-bold text-base tracking-wide transition-all duration-150 inline-flex items-center justify-center select-none uppercase";
+
+  const variants = {
+    primary:
+      "bg-emerald-500 text-white shadow-[0_4px_0_0_#059669] hover:bg-emerald-400 active:translate-y-1 active:shadow-none cursor-pointer",
+    inactive:
+      "bg-slate-200 text-slate-400 shadow-[0_4px_0_0_#cbd5e1] cursor-not-allowed",
+  };
+
+  return (
+    <button
+      disabled={disabled}
+      className={`${baseStyles} ${variants[variant]} ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
