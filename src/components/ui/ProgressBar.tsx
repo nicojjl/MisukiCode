@@ -1,25 +1,32 @@
 import React from "react";
 
 interface ProgressBarProps {
+  progress?: number;
   className?: string;
 }
 
 /**
- * Componente atómico de barra de progreso visual.
- * En la Capa 1 actúa como cascarón estructural (track vacío) sin estado de avance.
+ * Componente atómico de barra de progreso visual estilo Duolingo.
+ * Controla el porcentaje de llenado mediante estilos en línea reactivos al prop `progress`.
  */
-export const ProgressBar: React.FC<ProgressBarProps> = ({ className = "" }) => {
+export const ProgressBar: React.FC<ProgressBarProps> = ({
+  progress = 0,
+  className = "",
+}) => {
   return (
     <div
       role="progressbar"
       aria-label="Progreso de la lección"
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-valuenow={0}
+      aria-valuenow={Math.max(0, Math.min(100, progress))}
       className={`h-3.5 w-full bg-slate-200 rounded-full overflow-hidden ${className}`}
     >
-      {/* Carril de relleno vacío reservado para capas posteriores */}
-      <div className="h-full w-0 bg-transparent transition-all duration-300" />
+      {/* Carril interior dinámico con transición fluida y estilo en línea reactivo */}
+      <div
+        style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
+        className="h-full bg-emerald-500 rounded-full transition-all duration-500 ease-out"
+      />
     </div>
   );
 };
