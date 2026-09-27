@@ -87,9 +87,9 @@ export default function LandingPage() {
 
           {/* Stack Vertical de Botones */}
           <div className="flex flex-col gap-3.5 w-full sm:w-80">
-            {/* 1. Primario 'Empieza Ya' -> Conduce a la lección */}
+            {/* 1. Primario 'Empieza Ya' -> Conduce al Registro */}
             <Link
-              href="/lesson"
+              href="/registro"
               className="w-full py-4 px-6 rounded-2xl font-black text-center text-white bg-emerald-500 shadow-[0_4px_0_0_#059669] hover:bg-emerald-400 active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider text-base block"
             >
               Empieza Ya
