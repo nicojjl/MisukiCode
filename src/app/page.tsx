@@ -65,7 +65,7 @@ export default function LandingPage() {
               C
             </span>
             <span className="text-3xl font-black tracking-tight text-slate-900">
-              MisukiCode
+              MizukiCode
             </span>
           </div>
 

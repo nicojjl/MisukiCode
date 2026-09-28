@@ -11,7 +11,7 @@ interface ModuleData {
 }
 
 /**
- * Los 10 módulos oficiales del currículo integral de C en MisukiCode.
+ * Los 10 módulos oficiales del currículo integral de C en MizukiCode.
  * Colores alternados de Tailwind para dinamismo visual estilo Duolingo.
  */
 const CURRICULUM_MODULES: ModuleData[] = [
