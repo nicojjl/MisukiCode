@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 
 /**
  * 5 Frases motivacionales para el encabezado del formulario de registro.
@@ -179,6 +180,16 @@ export default function RegistroPage() {
 
   const currentAlgo = TREE_ALGORITHMS[algoIndex] || TREE_ALGORITHMS[0];
 
+  const handleGoogleLogin = async () => {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/lesson`,
+      },
+    });
+  };
+
   return (
     <div className="min-h-[100dvh] bg-slate-50 flex items-center justify-center p-4 sm:p-8 font-sans text-slate-800">
       <div className="w-full max-w-6xl bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden flex flex-col lg:flex-row my-auto">
@@ -221,6 +232,7 @@ export default function RegistroPage() {
               {/* Google */}
               <button
                 type="button"
+                onClick={handleGoogleLogin}
                 className="w-full py-3 px-4 rounded-2xl font-bold text-slate-700 bg-white border-2 border-slate-200 shadow-[0_3px_0_0_#e2e8f0] hover:bg-slate-50 hover:border-slate-300 active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-3 text-sm cursor-pointer"
               >
                 <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
