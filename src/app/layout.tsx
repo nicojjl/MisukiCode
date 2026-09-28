@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MizukiCode | Aprende Programación en C",
+  title: "MisukiCode | Aprende Programación en C",
   description: "Plataforma minimalista e interactiva para aprender programación en lenguaje C",
 };
 

@@ -69,7 +69,7 @@ export default function RegistroPage() {
               C
             </span>
             <span className="text-xl font-black tracking-tight text-slate-900">
-              MizukiCode
+              MisukiCode
             </span>
           </Link>
           <Link
@@ -187,7 +187,7 @@ export default function RegistroPage() {
 
           {/* Términos y Políticas */}
           <p className="text-xs text-slate-400 text-center mt-6 leading-relaxed">
-            Al registrarte en MizukiCode, aceptas nuestros{" "}
+            Al registrarte en MisukiCode, aceptas nuestros{" "}
             <a href="#" className="text-blue-500 hover:underline">
               Términos
             </a>{" "}
@@ -216,7 +216,7 @@ export default function RegistroPage() {
           <h2 className="text-5xl xl:text-7xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-12 mt-8 text-center">
             BIENVENIDO A{" "}
             <span className="bg-gradient-to-r from-black via-slate-900 to-emerald-500 bg-clip-text text-transparent">
-              MIZUKICODE
+              MISUKICODE
             </span>
           </h2>
 
