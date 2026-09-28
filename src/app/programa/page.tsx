@@ -192,7 +192,7 @@ export default function ProgramaPage() {
           </Link>
 
           <Link
-            href="/lesson"
+            href="/welcome"
             className="px-5 py-2.5 rounded-xl font-bold text-sm text-white bg-emerald-500 shadow-[0_3px_0_0_#059669] hover:bg-emerald-400 active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wide"
           >
             Probar Lección

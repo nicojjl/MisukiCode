@@ -185,7 +185,7 @@ export default function RegistroPage() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/lesson`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/welcome`,
       },
     });
   };
@@ -313,7 +313,7 @@ export default function RegistroPage() {
               </div>
 
               <Link
-                href="/lesson"
+                href="/welcome"
                 className="w-full py-3 px-6 rounded-2xl font-bold text-center text-white bg-emerald-500 shadow-[0_4px_0_0_#059669] hover:bg-emerald-400 active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider text-sm block"
               >
                 Continuar con correo
@@ -337,7 +337,7 @@ export default function RegistroPage() {
           {/* Footer simple izquierdo */}
           <div className="w-full max-w-sm mx-auto text-center text-xs text-slate-400 py-1">
             ¿Ya tienes cuenta?{" "}
-            <Link href="/lesson" className="text-emerald-600 font-bold hover:underline">
+            <Link href="/welcome" className="text-emerald-600 font-bold hover:underline">
               Inicia sesión
             </Link>
           </div>
