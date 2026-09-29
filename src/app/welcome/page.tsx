@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 const levels = [
   { id: 'principiante', title: 'Principiante', filledStars: 0 },
@@ -10,11 +11,13 @@ const levels = [
 ];
 
 export default function WelcomePage() {
+  const router = useRouter();
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
 
   const handleSelect = (id: string) => {
     setSelectedLevel(id);
     console.log('Nivel seleccionado:', id);
+    router.push(`/inicio?nivel=${id}`);
   };
 
   return (
@@ -73,6 +76,7 @@ export default function WelcomePage() {
             onClick={() => {
               if (selectedLevel) {
                 console.log('Continuar con nivel:', selectedLevel);
+                router.push(`/inicio?nivel=${selectedLevel}`);
               }
             }}
             className={`w-full py-4 px-6 rounded-2xl font-black uppercase tracking-wider text-sm transition-all duration-200 ${
