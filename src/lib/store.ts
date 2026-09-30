@@ -14,3 +14,4 @@ export type MizukiProgress = Record<string, ModuleProgress>;
 export const MZ_PROGRESS_KEY = "mz_progress";
 export const MZ_LEVEL_KEY = "mz_level";
 export const MZ_USER_NAME_KEY = "mz_user_name";
+export const MZ_SANDBOX_CODE_KEY = "mz_sandbox_code";
