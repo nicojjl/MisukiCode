@@ -24,6 +24,14 @@ export interface SandboxProject {
   activeFileId: string | null;
 }
 
+interface ContextMenuState {
+  visible: boolean;
+  x: number;
+  y: number;
+  targetId: string | null;
+  targetType: "file" | "folder" | null;
+}
+
 const DEFAULT_MAIN_C = `#include <stdio.h>
 
 int main() {
@@ -58,6 +66,15 @@ export default function SandboxPage() {
     folder_src: true,
   });
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>("folder_src");
+
+  // Estado del menú contextual
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    visible: false,
+    x: 0,
+    y: 0,
+    targetId: null,
+    targetType: null,
+  });
 
   const [output, setOutput] = useState<string>(INITIAL_OUTPUT);
   const [isError, setIsError] = useState<boolean>(false);
@@ -107,6 +124,17 @@ export default function SandboxPage() {
     }
   }, [files, folders, activeFileId, isLoaded]);
 
+  // 3. Listener global para cerrar el menú contextual al hacer clic fuera
+  useEffect(() => {
+    const handleWindowClick = () => {
+      if (contextMenu.visible) {
+        setContextMenu((prev) => ({ ...prev, visible: false }));
+      }
+    };
+    window.addEventListener("click", handleWindowClick);
+    return () => window.removeEventListener("click", handleWindowClick);
+  }, [contextMenu.visible]);
+
   // Archivo seleccionado actualmente en el editor
   const activeFile = files.find((f) => f.id === activeFileId) || null;
 
@@ -127,7 +155,97 @@ export default function SandboxPage() {
     return parentPath ? `${parentPath}/${folder.name}` : folder.name;
   };
 
-  // 3. Crear Nuevo Archivo interactivo
+  // 4. Interceptar clic derecho y posicionar el menú contextual
+  const handleContextMenu = (
+    e: React.MouseEvent,
+    targetId: string,
+    targetType: "file" | "folder"
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+      targetId,
+      targetType,
+    });
+  };
+
+  // 5. Acción Renombrar
+  const handleRename = () => {
+    const { targetId, targetType } = contextMenu;
+    setContextMenu((prev) => ({ ...prev, visible: false }));
+    if (!targetId || !targetType) return;
+
+    if (targetType === "file") {
+      const file = files.find((f) => f.id === targetId);
+      if (!file) return;
+      const newName = window.prompt("Renombrar archivo:", file.name);
+      if (newName && newName.trim() && newName.trim() !== file.name) {
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.id === targetId ? { ...f, name: newName.trim() } : f
+          )
+        );
+      }
+    } else if (targetType === "folder") {
+      const folder = folders.find((f) => f.id === targetId);
+      if (!folder) return;
+      const newName = window.prompt("Renombrar carpeta:", folder.name);
+      if (newName && newName.trim() && newName.trim() !== folder.name) {
+        setFolders((prev) =>
+          prev.map((f) =>
+            f.id === targetId ? { ...f, name: newName.trim() } : f
+          )
+        );
+      }
+    }
+  };
+
+  // 6. Acción Eliminar
+  const handleDelete = () => {
+    const { targetId, targetType } = contextMenu;
+    setContextMenu((prev) => ({ ...prev, visible: false }));
+    if (!targetId || !targetType) return;
+
+    if (targetType === "file") {
+      const file = files.find((f) => f.id === targetId);
+      if (!file) return;
+      const confirmed = window.confirm(
+        `¿Estás seguro de que deseas eliminar el archivo "${file.name}"?`
+      );
+      if (!confirmed) return;
+
+      setFiles((prev) => prev.filter((f) => f.id !== targetId));
+      if (activeFileId === targetId) {
+        setActiveFileId(null);
+      }
+    } else if (targetType === "folder") {
+      const folder = folders.find((f) => f.id === targetId);
+      if (!folder) return;
+      const confirmed = window.confirm(
+        `¿Estás seguro de que deseas eliminar la carpeta "${folder.name}" y todo su contenido?`
+      );
+      if (!confirmed) return;
+
+      const fileIdsInFolder = new Set(
+        files.filter((f) => f.parentId === targetId).map((f) => f.id)
+      );
+
+      setFiles((prev) => prev.filter((f) => f.parentId !== targetId));
+      setFolders((prev) => prev.filter((f) => f.id !== targetId));
+
+      if (activeFileId && fileIdsInFolder.has(activeFileId)) {
+        setActiveFileId(null);
+      }
+      if (selectedFolderId === targetId) {
+        setSelectedFolderId(null);
+      }
+    }
+  };
+
+  // 7. Crear Nuevo Archivo interactivo
   const handleCreateFile = () => {
     const name = window.prompt("Nombre del nuevo archivo (ej. utils.h, Makefile, helpers.c):");
     if (!name || !name.trim()) return;
@@ -149,7 +267,7 @@ export default function SandboxPage() {
     }
   };
 
-  // 4. Crear Nueva Carpeta interactiva
+  // 8. Crear Nueva Carpeta interactiva
   const handleCreateFolder = () => {
     const name = window.prompt("Nombre de la nueva carpeta (ej. includes, lib):");
     if (!name || !name.trim()) return;
@@ -166,7 +284,7 @@ export default function SandboxPage() {
     setSelectedFolderId(newFolder.id);
   };
 
-  // 5. Subir Archivo local (.c, .h, .txt, Makefile)
+  // 9. Subir Archivo local (.c, .h, .txt, Makefile)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -192,7 +310,7 @@ export default function SandboxPage() {
     e.target.value = "";
   };
 
-  // 6. Exportar Proyecto Completo a ZIP con JSZip
+  // 10. Exportar Proyecto Completo a ZIP con JSZip
   const handleDownloadZip = async () => {
     try {
       const zip = new JSZip();
@@ -232,7 +350,7 @@ export default function SandboxPage() {
     setIsError(false);
   };
 
-  // 7. Compilación con detección de errores (validación de código)
+  // 11. Compilación con detección de errores
   const handleCompile = () => {
     setActiveConsoleTab("console");
 
@@ -457,7 +575,7 @@ export default function SandboxPage() {
                 </div>
               </div>
 
-              {/* Árbol de Archivos Interactivo */}
+              {/* Árbol de Archivos Interactivo con Soporte de Clic Derecho */}
               <div className="py-2 flex flex-col font-sans select-none text-[13px] overflow-y-auto flex-1">
                 {/* Carpetas y sus archivos anidados */}
                 {folders.map((folder) => {
@@ -467,9 +585,10 @@ export default function SandboxPage() {
 
                   return (
                     <div key={folder.id} className="flex flex-col">
-                      {/* Cabecera de la carpeta */}
+                      {/* Cabecera de la carpeta (con onContextMenu) */}
                       <div
                         onClick={() => toggleFolder(folder.id)}
+                        onContextMenu={(e) => handleContextMenu(e, folder.id, "folder")}
                         className={`pl-3 pr-2 py-1.5 flex items-center justify-between cursor-pointer transition-colors ${
                           isSelected
                             ? "bg-slate-200/50 text-slate-900"
@@ -513,7 +632,7 @@ export default function SandboxPage() {
                         </div>
                       </div>
 
-                      {/* Archivos contenidos en la carpeta */}
+                      {/* Archivos contenidos en la carpeta (con onContextMenu) */}
                       {isExpanded && (
                         <div className="flex flex-col">
                           {folderFiles.map((file) => {
@@ -525,6 +644,7 @@ export default function SandboxPage() {
                                   setActiveFileId(file.id);
                                   setSelectedFolderId(folder.id);
                                 }}
+                                onContextMenu={(e) => handleContextMenu(e, file.id, "file")}
                                 className={`pl-7 pr-2 py-1.5 flex items-center justify-between cursor-pointer transition-colors ${
                                   isActive
                                     ? "bg-violet-100/70 border-l-2 border-violet-500 text-violet-800 font-medium"
@@ -546,7 +666,7 @@ export default function SandboxPage() {
                   );
                 })}
 
-                {/* Archivos en la raíz (sin parentId) */}
+                {/* Archivos en la raíz (con onContextMenu) */}
                 {files
                   .filter((f) => !f.parentId)
                   .map((file) => {
@@ -558,6 +678,7 @@ export default function SandboxPage() {
                           setActiveFileId(file.id);
                           setSelectedFolderId(null);
                         }}
+                        onContextMenu={(e) => handleContextMenu(e, file.id, "file")}
                         className={`pl-5 pr-2 py-1.5 flex items-center justify-between cursor-pointer transition-colors ${
                           isActive
                             ? "bg-violet-100/70 border-l-2 border-violet-500 text-violet-800 font-medium"
@@ -680,6 +801,32 @@ export default function SandboxPage() {
           </div>
         </div>
       </div>
+
+      {/* Menú Contextual Flotante (Clic Derecho) */}
+      {contextMenu.visible && (
+        <div
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          className="fixed z-50 w-48 bg-white border border-slate-200 rounded-md shadow-xl py-1 text-sm text-slate-700 select-none animate-in fade-in duration-75"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={handleRename}
+            className="w-full text-left px-4 py-2 hover:bg-violet-50 hover:text-violet-700 transition-colors flex items-center gap-2 cursor-pointer"
+          >
+            <span>✏️</span>
+            <span>Renombrar</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="w-full text-left px-4 py-2 hover:bg-red-50 hover:text-red-600 transition-colors text-red-500 flex items-center gap-2 cursor-pointer"
+          >
+            <span>🗑️</span>
+            <span>Eliminar</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
