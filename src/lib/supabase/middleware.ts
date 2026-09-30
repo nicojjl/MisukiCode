@@ -27,20 +27,19 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Obtenemos el usuario de forma segura. Si el token expiró, Supabase lo refresca aquí.
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Escudo de seguridad: Si intenta acceder a /welcome (o subrutas) sin estar logueado
-  if (request.nextUrl.pathname.startsWith('/welcome') && !user) {
+  // ESCUDO REAL: Protege /inicio y manda a los no logueados a /registro
+  if (request.nextUrl.pathname.startsWith('/inicio') && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/registro'
     return NextResponse.redirect(url)
   }
 
-  // Redirección inversa: Si ya está logueado e intenta ir al registro/landing
+  // REDIRECCIÓN INVERSA: Saca a los logueados de /registro y los manda a /inicio
   if (request.nextUrl.pathname === '/registro' && user) {
     const url = request.nextUrl.clone()
-    url.pathname = '/welcome'
+    url.pathname = '/inicio'
     return NextResponse.redirect(url)
   }
 
