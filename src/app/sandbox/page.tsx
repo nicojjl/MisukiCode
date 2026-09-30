@@ -2,9 +2,29 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { MZ_SANDBOX_CODE_KEY } from "@/lib/store";
+import JSZip from "jszip";
+import { MZ_SANDBOX_PROJECT_KEY } from "@/lib/store";
 
-const INITIAL_CODE = `#include <stdio.h>
+export interface ProjectFile {
+  id: string;
+  name: string;
+  content: string;
+  parentId: string | null;
+}
+
+export interface ProjectFolder {
+  id: string;
+  name: string;
+  parentId: string | null;
+}
+
+export interface SandboxProject {
+  files: ProjectFile[];
+  folders: ProjectFolder[];
+  activeFileId: string | null;
+}
+
+const DEFAULT_MAIN_C = `#include <stdio.h>
 
 int main() {
     printf("¡Hola, MizukiCode!\\n");
@@ -12,11 +32,33 @@ int main() {
 }
 `;
 
+const INITIAL_FOLDERS: ProjectFolder[] = [
+  { id: "folder_src", name: "src", parentId: null },
+];
+
+const INITIAL_FILES: ProjectFile[] = [
+  {
+    id: "file_main_c",
+    name: "main.c",
+    content: DEFAULT_MAIN_C,
+    parentId: "folder_src",
+  },
+];
+
+const INITIAL_ACTIVE_FILE_ID = "file_main_c";
+
 const INITIAL_OUTPUT = `>_ Live Console
 Click 'Compilar' para ejecutar...`;
 
 export default function SandboxPage() {
-  const [code, setCode] = useState<string>(INITIAL_CODE);
+  const [folders, setFolders] = useState<ProjectFolder[]>(INITIAL_FOLDERS);
+  const [files, setFiles] = useState<ProjectFile[]>(INITIAL_FILES);
+  const [activeFileId, setActiveFileId] = useState<string | null>(INITIAL_ACTIVE_FILE_ID);
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({
+    folder_src: true,
+  });
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>("folder_src");
+
   const [output, setOutput] = useState<string>(INITIAL_OUTPUT);
   const [isError, setIsError] = useState<boolean>(false);
   const [activeConsoleTab, setActiveConsoleTab] = useState<"console" | "io">("console");
@@ -24,44 +66,107 @@ export default function SandboxPage() {
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 1. Cargar código persistido desde localStorage al montar el componente
+  // 1. Cargar proyecto multi-archivo desde localStorage al montar el componente
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(MZ_SANDBOX_CODE_KEY);
-      if (saved !== null) {
-        setCode(saved);
+      const stored = localStorage.getItem(MZ_SANDBOX_PROJECT_KEY);
+      if (stored) {
+        const parsed: SandboxProject = JSON.parse(stored);
+        if (parsed.files && Array.isArray(parsed.files) && parsed.files.length > 0) {
+          setFiles(parsed.files);
+          setFolders(parsed.folders || []);
+          setActiveFileId(parsed.activeFileId || parsed.files[0]?.id || null);
+
+          // Mantener abiertas las carpetas recuperadas
+          const expanded: Record<string, boolean> = {};
+          (parsed.folders || []).forEach((f) => {
+            expanded[f.id] = true;
+          });
+          setExpandedFolders(expanded);
+        }
       }
-    } catch {
-      // Ignorar errores de acceso a almacenamiento en SSR/privacidad
+    } catch (err) {
+      console.error("Error al cargar proyecto desde localStorage:", err);
     } finally {
       setIsLoaded(true);
     }
   }, []);
 
-  // 2. Autoguardado silencioso al detectar cambios en el código
+  // 2. Autoguardado silencioso ante cambios en archivos, carpetas o archivo activo
   useEffect(() => {
     if (!isLoaded) return;
     try {
-      localStorage.setItem(MZ_SANDBOX_CODE_KEY, code);
+      const projectData: SandboxProject = {
+        files,
+        folders,
+        activeFileId,
+      };
+      localStorage.setItem(MZ_SANDBOX_PROJECT_KEY, JSON.stringify(projectData));
     } catch (err) {
-      console.error("Error al autoguardar código en localStorage:", err);
+      console.error("Error al autoguardar proyecto en localStorage:", err);
     }
-  }, [code, isLoaded]);
+  }, [files, folders, activeFileId, isLoaded]);
 
-  // 3. Descargar archivo main.c localmente
-  const handleDownload = () => {
-    const blob = new Blob([code], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "main.c";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  // Archivo seleccionado actualmente en el editor
+  const activeFile = files.find((f) => f.id === activeFileId) || null;
+
+  // Actualizar contenido del archivo activo sin afectar a los demás
+  const handleContentChange = (newContent: string) => {
+    if (!activeFileId) return;
+    setFiles((prev) =>
+      prev.map((f) => (f.id === activeFileId ? { ...f, content: newContent } : f))
+    );
   };
 
-  // 4. Subir y leer archivo local (.c, .h, .txt)
+  // Helper recursivo para resolver la ruta de una carpeta
+  const getFolderPath = (folderId: string | null): string => {
+    if (!folderId) return "";
+    const folder = folders.find((f) => f.id === folderId);
+    if (!folder) return "";
+    const parentPath = getFolderPath(folder.parentId);
+    return parentPath ? `${parentPath}/${folder.name}` : folder.name;
+  };
+
+  // 3. Crear Nuevo Archivo interactivo
+  const handleCreateFile = () => {
+    const name = window.prompt("Nombre del nuevo archivo (ej. utils.h, Makefile, helpers.c):");
+    if (!name || !name.trim()) return;
+
+    const trimmedName = name.trim();
+    const newFile: ProjectFile = {
+      id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      name: trimmedName,
+      content: trimmedName.endsWith(".h")
+        ? `#ifndef ${trimmedName.replace(/[^a-zA-Z0-9]/g, "_").toUpperCase()}\n#define ${trimmedName.replace(/[^a-zA-Z0-9]/g, "_").toUpperCase()}\n\n// Prototipos y definiciones\n\n#endif\n`
+        : "",
+      parentId: selectedFolderId,
+    };
+
+    setFiles((prev) => [...prev, newFile]);
+    setActiveFileId(newFile.id);
+    if (selectedFolderId) {
+      setExpandedFolders((prev) => ({ ...prev, [selectedFolderId]: true }));
+    }
+  };
+
+  // 4. Crear Nueva Carpeta interactiva
+  const handleCreateFolder = () => {
+    const name = window.prompt("Nombre de la nueva carpeta (ej. includes, lib):");
+    if (!name || !name.trim()) return;
+
+    const trimmedName = name.trim();
+    const newFolder: ProjectFolder = {
+      id: `folder_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      name: trimmedName,
+      parentId: null,
+    };
+
+    setFolders((prev) => [...prev, newFolder]);
+    setExpandedFolders((prev) => ({ ...prev, [newFolder.id]: true }));
+    setSelectedFolderId(newFolder.id);
+  };
+
+  // 5. Subir Archivo local (.c, .h, .txt, Makefile)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -70,11 +175,56 @@ export default function SandboxPage() {
     reader.onload = (event) => {
       const content = event.target?.result;
       if (typeof content === "string") {
-        setCode(content);
+        const newFile: ProjectFile = {
+          id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          name: file.name,
+          content: content,
+          parentId: selectedFolderId,
+        };
+        setFiles((prev) => [...prev, newFile]);
+        setActiveFileId(newFile.id);
+        if (selectedFolderId) {
+          setExpandedFolders((prev) => ({ ...prev, [selectedFolderId]: true }));
+        }
       }
     };
     reader.readAsText(file);
     e.target.value = "";
+  };
+
+  // 6. Exportar Proyecto Completo a ZIP con JSZip
+  const handleDownloadZip = async () => {
+    try {
+      const zip = new JSZip();
+
+      // Recrear carpetas virtuales (incluso si están vacías)
+      folders.forEach((folder) => {
+        const path = getFolderPath(folder.id);
+        if (path) {
+          zip.folder(path);
+        }
+      });
+
+      // Agregar todos los archivos en sus rutas virtuales
+      files.forEach((file) => {
+        const folderPath = getFolderPath(file.parentId);
+        const fullPath = folderPath ? `${folderPath}/${file.name}` : file.name;
+        zip.file(fullPath, file.content);
+      });
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "mizukicode_project.zip";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error al exportar archivo ZIP:", err);
+      window.alert("Ocurrió un error al generar el archivo .zip");
+    }
   };
 
   const handleClear = () => {
@@ -82,13 +232,21 @@ export default function SandboxPage() {
     setIsError(false);
   };
 
-  // 5. Compilación con detección de errores (Fix de Ejecución Fantasma)
+  // 7. Compilación con detección de errores (validación de código)
   const handleCompile = () => {
     setActiveConsoleTab("console");
 
-    // Validación inicial estricta: previene compilación fantasma si está vacío
-    if (!code || code.trim() === "") {
-      setOutput(">_ Error: No hay código para compilar. El archivo está vacío.");
+    // Identificar archivo objetivo (main.c si existe, o el archivo activo)
+    const mainFile = files.find((f) => f.name === "main.c");
+    const targetFile = mainFile || activeFile;
+    const codeToCompile = targetFile?.content || "";
+
+    if (!targetFile || !codeToCompile || codeToCompile.trim() === "") {
+      setOutput(
+        targetFile
+          ? `>_ Error: No hay código para compilar. '${targetFile.name}' está vacío.`
+          : ">_ Error: No hay código para compilar. El archivo está vacío."
+      );
       setIsError(true);
       setIsRunning(false);
       return;
@@ -96,15 +254,55 @@ export default function SandboxPage() {
 
     setIsRunning(true);
     setIsError(false);
-    setOutput(">_ Live Console\n[WASM] Compilando...");
+    setOutput(
+      `>_ Live Console\n[WASM] Compilando ${targetFile.name} y vinculando módulos del proyecto...`
+    );
 
     setTimeout(() => {
       setOutput(
-        ">_ Live Console\n[WASM] Compilando...\n¡Hola, MizukiCode!\n\nPrograma finalizado con código de salida 0."
+        `>_ Live Console\n[WASM] Compilando ${targetFile.name} y vinculando módulos del proyecto...\n¡Hola, MizukiCode!\n\nPrograma finalizado con código de salida 0.`
       );
       setIsError(false);
       setIsRunning(false);
     }, 600);
+  };
+
+  const toggleFolder = (folderId: string) => {
+    setExpandedFolders((prev) => ({
+      ...prev,
+      [folderId]: !prev[folderId],
+    }));
+    setSelectedFolderId(folderId);
+  };
+
+  // Helper para renderizar badge de archivo según extensión
+  const renderFileBadge = (fileName: string) => {
+    if (fileName.endsWith(".h")) {
+      return (
+        <span className="text-[11px] font-bold text-sky-600 font-mono w-3.5 text-center">
+          H
+        </span>
+      );
+    }
+    if (fileName.endsWith(".c")) {
+      return (
+        <span className="text-[11px] font-bold text-violet-600 font-mono w-3.5 text-center">
+          C
+        </span>
+      );
+    }
+    if (fileName.toLowerCase() === "makefile" || fileName.endsWith(".mk")) {
+      return (
+        <span className="text-[11px] font-bold text-amber-600 font-mono w-3.5 text-center">
+          ⚙
+        </span>
+      );
+    }
+    return (
+      <span className="text-[11px] text-slate-400 font-mono w-3.5 text-center">
+        📄
+      </span>
+    );
   };
 
   return (
@@ -145,7 +343,7 @@ export default function SandboxPage() {
 
             {/* Título centrado */}
             <span className="text-xs font-semibold text-slate-400 tracking-wide">
-              MizukiCode Sandbox
+              MizukiCode Sandbox — Multi-File Project
             </span>
 
             {/* Espaciador para centrado óptico */}
@@ -154,26 +352,26 @@ export default function SandboxPage() {
 
           {/* 2. Layout Tri-Panel */}
           <div className="flex h-full overflow-hidden flex-1">
-            {/* 3. Panel Izquierdo (Explorador de Archivos - Estética VS Code) */}
+            {/* 3. Panel Izquierdo (Explorador Interactivo Multi-Archivo) */}
             <aside className="w-64 border-r border-slate-200 bg-slate-50 flex flex-col shrink-0 select-none">
-              {/* Header del Explorador con SVGs Minimalistas */}
+              {/* Header del Explorador con Acciones Interactivas */}
               <div className="text-xs font-bold text-slate-500 px-3 py-2.5 flex justify-between items-center border-b border-slate-200/60">
                 <span className="tracking-wider">EXPLORER</span>
                 <div className="flex items-center gap-1">
-                  {/* Input de archivo oculto */}
+                  {/* Input de archivo oculto para subida */}
                   <input
                     type="file"
                     ref={fileInputRef}
                     onChange={handleFileUpload}
-                    accept=".c,.h,.txt"
+                    accept=".c,.h,.txt,.mk,Makefile"
                     className="hidden"
                   />
 
-                  {/* 1. Ícono 'Nuevo Archivo' */}
+                  {/* 1. Nuevo Archivo */}
                   <button
                     type="button"
-                    onClick={() => setCode(INITIAL_CODE)}
-                    title="Nuevo Archivo (Plantilla inicial)"
+                    onClick={handleCreateFile}
+                    title="Nuevo Archivo"
                     className="p-1 rounded hover:bg-slate-200/70 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
                   >
                     <svg
@@ -191,11 +389,33 @@ export default function SandboxPage() {
                     </svg>
                   </button>
 
-                  {/* 2. Ícono 'Subir Archivo' */}
+                  {/* 2. Nueva Carpeta */}
+                  <button
+                    type="button"
+                    onClick={handleCreateFolder}
+                    title="Nueva Carpeta"
+                    className="p-1 rounded hover:bg-slate-200/70 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* 3. Subir Archivo */}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    title="Subir Archivo"
+                    title="Subir Archivo al proyecto"
                     className="p-1 rounded hover:bg-slate-200/70 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
                   >
                     <svg
@@ -213,11 +433,11 @@ export default function SandboxPage() {
                     </svg>
                   </button>
 
-                  {/* 3. Ícono 'Descargar' */}
+                  {/* 4. Descargar Proyecto ZIP */}
                   <button
                     type="button"
-                    onClick={handleDownload}
-                    title="Descargar main.c"
+                    onClick={handleDownloadZip}
+                    title="Descargar Proyecto ZIP (mizukicode_project.zip)"
                     className="p-1 rounded hover:bg-slate-200/70 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
                   >
                     <svg
@@ -237,36 +457,157 @@ export default function SandboxPage() {
                 </div>
               </div>
 
-              {/* Indicador Estático de Archivo Único (main.c) */}
-              <div className="py-2 flex flex-col font-sans select-none text-[13px]">
-                <div className="px-3 py-1.5 flex items-center gap-2 bg-violet-100 text-violet-700 border-l-2 border-violet-500 font-mono font-medium">
-                  <span className="text-xs font-black text-violet-600">C</span>
-                  <span>main.c</span>
-                </div>
+              {/* Árbol de Archivos Interactivo */}
+              <div className="py-2 flex flex-col font-sans select-none text-[13px] overflow-y-auto flex-1">
+                {/* Carpetas y sus archivos anidados */}
+                {folders.map((folder) => {
+                  const isExpanded = Boolean(expandedFolders[folder.id]);
+                  const folderFiles = files.filter((f) => f.parentId === folder.id);
+                  const isSelected = selectedFolderId === folder.id;
+
+                  return (
+                    <div key={folder.id} className="flex flex-col">
+                      {/* Cabecera de la carpeta */}
+                      <div
+                        onClick={() => toggleFolder(folder.id)}
+                        className={`pl-3 pr-2 py-1.5 flex items-center justify-between cursor-pointer transition-colors ${
+                          isSelected
+                            ? "bg-slate-200/50 text-slate-900"
+                            : "text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <svg
+                            className={`w-3 h-3 text-slate-400 shrink-0 transition-transform duration-150 ${
+                              isExpanded ? "rotate-90" : ""
+                            }`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
+                          </svg>
+                          <svg
+                            className="w-3.5 h-3.5 text-amber-500 shrink-0"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            {isExpanded ? (
+                              <path
+                                fillRule="evenodd"
+                                d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1H8a3 3 0 00-3 3v4.5A1.5 1.5 0 013.5 16H2V6zm4 7a2 2 0 012-2h10a2 2 0 012 2v3a2 2 0 01-2 2H8a2 2 0 01-2-2v-3z"
+                                clipRule="evenodd"
+                              />
+                            ) : (
+                              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                            )}
+                          </svg>
+                          <span className="font-semibold truncate">
+                            {folder.name}/
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Archivos contenidos en la carpeta */}
+                      {isExpanded && (
+                        <div className="flex flex-col">
+                          {folderFiles.map((file) => {
+                            const isActive = file.id === activeFileId;
+                            return (
+                              <div
+                                key={file.id}
+                                onClick={() => {
+                                  setActiveFileId(file.id);
+                                  setSelectedFolderId(folder.id);
+                                }}
+                                className={`pl-7 pr-2 py-1.5 flex items-center justify-between cursor-pointer transition-colors ${
+                                  isActive
+                                    ? "bg-violet-100/70 border-l-2 border-violet-500 text-violet-800 font-medium"
+                                    : "text-slate-600 hover:bg-slate-100/80"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  {renderFileBadge(file.name)}
+                                  <span className="truncate font-mono">
+                                    {file.name}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Archivos en la raíz (sin parentId) */}
+                {files
+                  .filter((f) => !f.parentId)
+                  .map((file) => {
+                    const isActive = file.id === activeFileId;
+                    return (
+                      <div
+                        key={file.id}
+                        onClick={() => {
+                          setActiveFileId(file.id);
+                          setSelectedFolderId(null);
+                        }}
+                        className={`pl-5 pr-2 py-1.5 flex items-center justify-between cursor-pointer transition-colors ${
+                          isActive
+                            ? "bg-violet-100/70 border-l-2 border-violet-500 text-violet-800 font-medium"
+                            : "text-slate-600 hover:bg-slate-100/80"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          {renderFileBadge(file.name)}
+                          <span className="truncate font-mono">
+                            {file.name}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             </aside>
 
-            {/* 4. Panel Central (Editor de Código - Ancho flexible) */}
+            {/* 4. Panel Central (Editor de Código Multi-Archivo) */}
             <main className="flex-1 flex flex-col min-w-0 bg-white">
               {/* Barra de Pestañas (Tabs) */}
-              <div className="h-10 border-b border-slate-200 flex bg-slate-50 shrink-0">
-                <div className="px-4 py-2 bg-white border-r border-slate-200 text-sm text-slate-700 flex items-center gap-2 font-mono border-t-2 border-t-violet-500 font-medium select-none h-full">
-                  <span className="text-xs font-black text-violet-600">C</span>
-                  <span>main.c</span>
-                </div>
+              <div className="h-10 border-b border-slate-200 flex bg-slate-50 shrink-0 overflow-x-auto">
+                {activeFile ? (
+                  <div className="px-4 py-2 bg-white border-r border-slate-200 text-sm text-slate-800 flex items-center gap-2 font-mono border-t-2 border-t-violet-500 font-medium select-none h-full">
+                    {renderFileBadge(activeFile.name)}
+                    <span>{activeFile.name}</span>
+                  </div>
+                ) : (
+                  <div className="px-4 py-2 text-xs text-slate-400 italic flex items-center h-full">
+                    Selecciona un archivo del explorador
+                  </div>
+                )}
               </div>
 
               {/* Área de Texto */}
               <textarea
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
+                value={activeFile ? activeFile.content : ""}
+                onChange={(e) => handleContentChange(e.target.value)}
                 spellCheck={false}
-                className="w-full flex-1 p-4 font-mono text-sm resize-none outline-none text-slate-800 bg-white leading-relaxed"
-                placeholder="Escribe tu código C aquí..."
+                disabled={!activeFile}
+                className="w-full flex-1 p-4 font-mono text-sm resize-none outline-none text-slate-800 bg-white leading-relaxed disabled:bg-slate-50 disabled:text-slate-400"
+                placeholder={
+                  activeFile
+                    ? `Escribe tu código en ${activeFile.name}...`
+                    : "Selecciona o crea un archivo en el explorador para comenzar..."
+                }
               />
             </main>
 
-            {/* 5. Panel Derecho (Consola y Ejecución - 30% ancho) */}
+            {/* 5. Panel Derecho (Consola y Ejecución) */}
             <section className="w-96 border-l border-slate-200 bg-slate-50 flex flex-col shrink-0">
               {/* Barra de Pestañas de Consola */}
               <div className="h-10 border-b border-slate-200 flex items-center justify-between px-3 bg-slate-50 shrink-0">
