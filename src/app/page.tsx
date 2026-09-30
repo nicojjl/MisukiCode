@@ -83,26 +83,18 @@ export default function Page() {
 
           {/* Stack Vertical de Botones */}
           <div className="flex flex-col gap-3.5 w-full sm:w-80">
-            {/* 1. Primario 'Empieza gratis' -> Conduce al Registro con fondo morado sólido */}
+            {/* 1. Primario 'Empieza gratis' -> Conduce directamente al Cuartel General */}
             <Link
-              href="/registro"
+              href="/inicio"
               className="w-full py-4 px-6 rounded-2xl font-black text-center text-white bg-purple-600 shadow-[0_4px_0_0_#7e22ce] hover:bg-purple-500 active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider text-base block"
             >
               Empieza gratis
             </Link>
 
-            {/* 2. Secundario 'Iniciar sesión' con menor contraste */}
-            <Link
-              href="/registro"
-              className="w-full py-3.5 px-6 rounded-2xl font-bold text-center bg-slate-100 text-slate-600 hover:bg-slate-200 active:translate-y-0.5 transition-all uppercase tracking-wider text-sm block"
-            >
-              Iniciar sesión
-            </Link>
-
-            {/* 3. Enlace 'Ver Programa' -> Adaptado al tono morado del proyecto */}
+            {/* 2. Secundario 'Ver Programa' -> Acceso al temario completo */}
             <Link
               href="/programa"
-              className="font-semibold text-purple-600 underline-offset-4 hover:underline transition-all text-center block text-sm py-1"
+              className="w-full py-3.5 px-6 rounded-2xl font-bold text-center bg-slate-100 text-slate-700 hover:bg-slate-200 active:translate-y-0.5 transition-all uppercase tracking-wider text-sm block"
             >
               Ver Programa
             </Link>

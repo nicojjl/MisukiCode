@@ -1,96 +1,51 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { createServerClient } from "@supabase/ssr";
+import { MZ_LEVEL_KEY, MZ_USER_NAME_KEY } from "@/lib/store";
 
 /**
  * Cuartel General / Dashboard Principal (/inicio).
- * Server Component con control de acceso, saludo personalizado y selección de modos de aprendizaje.
+ * Client Component autónomo y local con saludo personalizado y selección de 3 modos de aprendizaje.
  */
-interface InicioPageProps {
-  searchParams?: {
-    nivel?: string;
-  };
-}
+export default function InicioPage() {
+  const [nombre, setNombre] = useState<string>("Cadete");
+  const [nivel, setNivel] = useState<string>("Principiante");
 
-export default async function InicioPage({ searchParams }: InicioPageProps) {
-  const cookieStore = cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
+  useEffect(() => {
+    try {
+      const storedName = localStorage.getItem(MZ_USER_NAME_KEY);
+      if (storedName) setNombre(storedName);
+
+      const storedLevel = localStorage.getItem(MZ_LEVEL_KEY);
+      if (storedLevel) setNivel(storedLevel);
+    } catch {
+      // Ignorar errores en SSR
     }
-  );
-
-  // Obtener usuario autenticado de forma segura en el servidor
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Si no hay usuario autenticado, redirigir al registro
-  if (!user) {
-    redirect("/registro");
-  }
-
-  // Consulta a la tabla perfiles usando el user.id para obtener el nivel
-  let { data: profile } = await supabase
-    .from("perfiles")
-    .select("nivel, ejercicios_completados")
-    .eq("id", user.id)
-    .single();
-
-  // Fail-Safe / Auto-sanación: Si el perfil en la BD no tiene nivel pero recibimos el nivel en searchParams,
-  // sanamos la BD desde el servidor (cubre fallos de actualización en cliente o RLS restrictivo)
-  if (!profile?.nivel && searchParams?.nivel) {
-    const { error: updateError } = await supabase
-      .from("perfiles")
-      .update({ nivel: searchParams.nivel })
-      .eq("id", user.id);
-
-    if (!updateError) {
-      profile = {
-        ...profile,
-        nivel: searchParams.nivel,
-        ejercicios_completados: profile?.ejercicios_completados ?? 0,
-      };
-    }
-  }
-
-  // Control de Acceso (Guard): Si el usuario está logueado pero su nivel en la BD es null, forzar onboarding
-  if (!profile?.nivel) {
-    redirect("/welcome");
-  }
-
-  // Saludo Personalizado: Extraer nombre de user_metadata.full_name
-  const nombre =
-    user.user_metadata?.full_name ||
-    user.user_metadata?.name ||
-    "Usuario";
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-16">
       {/* Barra de navegación superior del Dashboard */}
       <header className="w-full bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-6 sm:px-12 py-4 sticky top-0 z-20">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+          <Link href="/inicio" className="flex items-center gap-2.5">
             <span className="w-9 h-9 rounded-xl bg-slate-900 text-white font-black flex items-center justify-center text-lg shadow-sm">
               C
             </span>
             <span className="text-xl font-black tracking-tight text-slate-900">
               MizukiCode
             </span>
-          </div>
+          </Link>
 
           <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-purple-700 bg-purple-100 px-3 py-1.5 rounded-full capitalize">
-              Nivel: {profile.nivel}
-            </span>
+            <Link
+              href="/welcome"
+              title="Cambiar nivel de aprendizaje"
+              className="text-xs font-bold text-purple-700 bg-purple-100 hover:bg-purple-200 px-3 py-1.5 rounded-full capitalize transition-colors"
+            >
+              Nivel: {nivel} ⚙️
+            </Link>
           </div>
         </div>
       </header>
@@ -103,7 +58,7 @@ export default async function InicioPage({ searchParams }: InicioPageProps) {
             ¡Hola {nombre}, bienvenido!
           </h1>
           <p className="text-lg sm:text-xl font-bold text-slate-500 tracking-tight">
-            Elige tu modo
+            Elige tu modo de aprendizaje
           </p>
         </div>
 

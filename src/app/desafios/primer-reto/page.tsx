@@ -1,61 +1,18 @@
 "use client";
 
-import React, { Suspense, useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { Suspense, useEffect } from "react";
+import Link from "next/link";
 import { Header } from "@/components/layout/Header";
 import { LessonContainer } from "@/components/layout/LessonContainer";
 import { Footer } from "@/components/layout/Footer";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { SaveProgressModal } from "@/components/ui/SaveProgressModal";
 import { MOCK_EXERCISES } from "@/data/mockExercises";
 import { useLesson } from "@/hooks/useLesson";
-import { createClient } from "@/lib/supabase/client";
+import { useProgress } from "@/hooks/useProgress";
 
 function LessonContent() {
-  const searchParams = useSearchParams();
-  const nivel = searchParams.get("nivel");
-  const [showSaveModal, setShowSaveModal] = useState(false);
-
-  const supabase = createClient();
-
-  useEffect(() => {
-    const syncPendingProgress = async () => {
-      const pendingSave = localStorage.getItem("mz_pending_save");
-
-      if (pendingSave) {
-        try {
-          const { level, exerciseCompleted } = JSON.parse(pendingSave);
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-
-          if (user && exerciseCompleted) {
-            // Actualizamos el perfil del usuario recién creado por el Trigger
-            const { error } = await supabase
-              .from("perfiles")
-              .update({
-                nivel: level,
-                ejercicios_completados: 1,
-              })
-              .eq("id", user.id);
-
-            if (!error) {
-              console.log("✅ Progreso sincronizado con éxito.");
-              // Limpiamos la memoria local solo si el update fue exitoso
-              localStorage.removeItem("mz_pending_save");
-            } else {
-              console.error("Error al actualizar perfil en BD:", error);
-            }
-          }
-        } catch (err) {
-          console.error("Error parseando progreso local:", err);
-        }
-      }
-    };
-
-    syncPendingProgress();
-  }, [supabase]);
+  const { markAsCompleted } = useProgress();
 
   const {
     currentExercise,
@@ -71,6 +28,13 @@ function LessonContent() {
 
   const isCompleted = status === "completed";
 
+  // Al completar la lección, guardamos automáticamente en localStorage
+  useEffect(() => {
+    if (isCompleted) {
+      markAsCompleted("modulo_5_punteros");
+    }
+  }, [isCompleted, markAsCompleted]);
+
   // Cálculo del porcentaje de progreso visual estilo Duolingo
   const progress = isCompleted
     ? 100
@@ -80,30 +44,8 @@ function LessonContent() {
 
   const isInputEmpty = userInput.trim().length === 0;
 
-  console.log("Nivel recibido:", nivel);
-
   return (
     <div className="h-screen w-full flex flex-col justify-between overflow-hidden bg-slate-50 relative">
-      {/* Botón temporal de prueba para simular ejercicio completado (Solo visible en desarrollo) */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="fixed top-3 right-16 sm:right-20 z-40">
-          <button
-            type="button"
-            onClick={() => setShowSaveModal(true)}
-            className="text-xs font-bold text-amber-900 bg-amber-200 hover:bg-amber-300 border border-amber-400 py-1.5 px-3 rounded-full shadow-sm transition-all cursor-pointer"
-          >
-            TEST: Simular Ejercicio Completado
-          </button>
-        </div>
-      )}
-
-      {/* Modal Guarda tu Progreso */}
-      <SaveProgressModal
-        isOpen={showSaveModal}
-        onClose={() => setShowSaveModal(false)}
-        nivel={nivel}
-      />
-
       {/* 1. Barra Superior con Progreso Reactivo, botón de salida y Avatar de usuario */}
       <Header progress={progress} />
 
@@ -119,15 +61,24 @@ function LessonContent() {
             </h2>
             <p className="text-slate-500 text-lg max-w-md mx-auto mb-8">
               Has dominado los fundamentos de memoria dinámica y aritmética de punteros en C.
+              El módulo ha sido guardado como completado en tu progreso local.
             </p>
-            <Button
-              variant="primary"
-              disabled={false}
-              onClick={() => window.location.reload()}
-              className="px-10"
-            >
-              Repetir Lección
-            </Button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Button
+                variant="primary"
+                disabled={false}
+                onClick={() => window.location.reload()}
+                className="px-8 w-full sm:w-auto"
+              >
+                Repetir Lección
+              </Button>
+              <Link
+                href="/inicio"
+                className="px-8 py-3 rounded-2xl bg-white border-2 border-slate-200 text-slate-700 hover:border-slate-300 font-black text-sm uppercase tracking-wider transition-all w-full sm:w-auto text-center"
+              >
+                Volver al Dashboard
+              </Link>
+            </div>
           </Card>
         ) : (
           <Card
@@ -155,7 +106,7 @@ function LessonContent() {
 
 /**
  * Simulador de Desafíos: Primer Reto (/desafios/primer-reto).
- * Orquestador interactivo preservado con lógica de progreso y guardado para invitados.
+ * Orquestador interactivo conectado al almacenamiento local sin backend externo.
  */
 export default function PrimerRetoPage() {
   return (

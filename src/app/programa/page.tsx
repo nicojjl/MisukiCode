@@ -2,9 +2,11 @@
 
 import React from "react";
 import Link from "next/link";
+import { useProgress } from "@/hooks/useProgress";
 
 interface ModuleData {
   id: number;
+  slug: string;
   title: string;
   color: string;
   topics: string[];
@@ -17,6 +19,7 @@ interface ModuleData {
 const CURRICULUM_MODULES: ModuleData[] = [
   {
     id: 1,
+    slug: "modulo_1_fundamentos",
     title: "Fundamentos del Lenguaje",
     color: "text-emerald-500",
     topics: [
@@ -29,6 +32,7 @@ const CURRICULUM_MODULES: ModuleData[] = [
   },
   {
     id: 2,
+    slug: "modulo_2_control_flujo",
     title: "Control de Flujo",
     color: "text-blue-500",
     topics: [
@@ -40,6 +44,7 @@ const CURRICULUM_MODULES: ModuleData[] = [
   },
   {
     id: 3,
+    slug: "modulo_3_modularidad_funciones",
     title: "Modularidad y Funciones",
     color: "text-purple-500",
     topics: [
@@ -51,6 +56,7 @@ const CURRICULUM_MODULES: ModuleData[] = [
   },
   {
     id: 4,
+    slug: "modulo_4_estructuras_datos_estaticas",
     title: "Estructuras de Datos Estáticas",
     color: "text-amber-500",
     topics: [
@@ -62,6 +68,7 @@ const CURRICULUM_MODULES: ModuleData[] = [
   },
   {
     id: 5,
+    slug: "modulo_5_punteros",
     title: "Gestión de Memoria y Punteros (Nivel Intermedio)",
     color: "text-rose-500",
     topics: [
@@ -74,6 +81,7 @@ const CURRICULUM_MODULES: ModuleData[] = [
   },
   {
     id: 6,
+    slug: "modulo_6_tipos_definidos_usuario",
     title: "Tipos de Datos Definidos por el Usuario",
     color: "text-teal-500",
     topics: [
@@ -85,6 +93,7 @@ const CURRICULUM_MODULES: ModuleData[] = [
   },
   {
     id: 7,
+    slug: "modulo_7_memoria_dinamica_algoritmia",
     title: "Memoria Dinámica y Algoritmia (Nivel Avanzado)",
     color: "text-indigo-500",
     topics: [
@@ -96,6 +105,7 @@ const CURRICULUM_MODULES: ModuleData[] = [
   },
   {
     id: 8,
+    slug: "modulo_8_gestion_archivos",
     title: "Gestión de Archivos",
     color: "text-orange-500",
     topics: [
@@ -107,6 +117,7 @@ const CURRICULUM_MODULES: ModuleData[] = [
   },
   {
     id: 9,
+    slug: "modulo_9_preprocesador",
     title: "El Preprocesador de C",
     color: "text-pink-500",
     topics: [
@@ -118,6 +129,7 @@ const CURRICULUM_MODULES: ModuleData[] = [
   },
   {
     id: 10,
+    slug: "modulo_10_sistemas_entornos",
     title: "Nivel Laboral: Sistemas y Entornos",
     color: "text-cyan-500",
     topics: [
@@ -133,11 +145,21 @@ const CURRICULUM_MODULES: ModuleData[] = [
 ];
 
 /**
- * Sub-componente de Sección con diseño en Zig-Zag.
- * Si index es par: texto a la izquierda, placeholder a la derecha.
- * Si index es impar: md:flex-row-reverse invierte el orden.
+ * Sub-componente de Sección con diseño en Zig-Zag y estado reactivo local.
  */
-function ModuleSection({ module, index }: { module: ModuleData; index: number }) {
+function ModuleSection({
+  module,
+  index,
+  isViewed,
+  isCompleted,
+  onMarkAsViewed,
+}: {
+  module: ModuleData;
+  index: number;
+  isViewed: boolean;
+  isCompleted: boolean;
+  onMarkAsViewed: () => void;
+}) {
   const isEven = index % 2 === 0;
 
   return (
@@ -148,13 +170,25 @@ function ModuleSection({ module, index }: { module: ModuleData; index: number })
     >
       {/* Columna de Texto */}
       <div className="flex-1 max-w-xl">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-400 bg-slate-100 px-3 py-1 rounded-full mb-3 inline-block">
-          Módulo {module.id}
-        </span>
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 bg-slate-100 px-3 py-1 rounded-full inline-block">
+            Módulo {module.id}
+          </span>
+          {isCompleted ? (
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full flex items-center gap-1">
+              ✓ Completado
+            </span>
+          ) : isViewed ? (
+            <span className="text-xs font-bold text-teal-700 bg-teal-100 px-3 py-1 rounded-full flex items-center gap-1">
+              ✓ Visto
+            </span>
+          ) : null}
+        </div>
+
         <h2 className={`text-3xl sm:text-4xl font-extrabold mb-4 tracking-tight ${module.color}`}>
           {module.title}
         </h2>
-        <ul className="space-y-2.5 text-slate-600 text-lg">
+        <ul className="space-y-2.5 text-slate-600 text-lg mb-6">
           {module.topics.map((topic, i) => (
             <li key={i} className="flex items-start gap-3">
               <span className={`font-bold text-xl leading-none mt-1 ${module.color}`}>•</span>
@@ -162,12 +196,33 @@ function ModuleSection({ module, index }: { module: ModuleData; index: number })
             </li>
           ))}
         </ul>
+
+        {/* Acciones locales de progreso */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onMarkAsViewed}
+            className={`text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer ${
+              isCompleted
+                ? "bg-emerald-100 text-emerald-800"
+                : isViewed
+                ? "bg-teal-100 text-teal-800 hover:bg-teal-200"
+                : "bg-slate-200 hover:bg-slate-300 text-slate-700"
+            }`}
+          >
+            {isCompleted
+              ? "✓ Módulo Validado"
+              : isViewed
+              ? "✓ Marcado como Visto"
+              : "Marcar como Visto"}
+          </button>
+        </div>
       </div>
 
       {/* Columna Visual (Placeholder) */}
       <div className="w-64 h-64 rounded-3xl bg-slate-200 border-4 border-dashed border-slate-300 flex items-center justify-center shrink-0 shadow-inner">
-        <span className="text-slate-400 font-extrabold text-xl">
-          Pronto...
+        <span className="text-slate-400 font-extrabold text-xl text-center px-4">
+          {isCompleted ? "🏆 Completado" : isViewed ? "📖 Visto" : "Pronto..."}
         </span>
       </div>
     </section>
@@ -176,26 +231,28 @@ function ModuleSection({ module, index }: { module: ModuleData; index: number })
 
 /**
  * Página principal del Programa (/programa).
- * Exportada por defecto como componente React.
+ * Exportada por defecto como componente React conectado al almacenamiento local.
  */
 export default function ProgramaPage() {
+  const { progress, markAsViewed } = useProgress();
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-24 selection:bg-emerald-200 selection:text-emerald-900">
       {/* Barra de navegación superior con botón Volver */}
       <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-6 sm:px-12 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link
-            href="/"
+            href="/inicio"
             className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-2 cursor-pointer select-none"
           >
-            ← Volver al inicio
+            ← Volver al Dashboard
           </Link>
 
           <Link
-            href="/welcome"
+            href="/desafios/primer-reto"
             className="px-5 py-2.5 rounded-xl font-bold text-sm text-white bg-emerald-500 shadow-[0_3px_0_0_#059669] hover:bg-emerald-400 active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wide select-none"
           >
-            Probar Lección
+            Probar Desafío
           </Link>
         </div>
       </header>
@@ -217,12 +274,21 @@ export default function ProgramaPage() {
 
         {/* Iteración de los 10 módulos en diseño zig-zag con espaciado amplio */}
         <div className="space-y-24 sm:space-y-32">
-          {CURRICULUM_MODULES.map((module, index) => (
-            <ModuleSection key={module.id} module={module} index={index} />
-          ))}
+          {CURRICULUM_MODULES.map((module, index) => {
+            const modProgress = progress[module.slug] || progress[`modulo_${module.id}`];
+            return (
+              <ModuleSection
+                key={module.id}
+                module={module}
+                index={index}
+                isViewed={Boolean(modProgress?.visto)}
+                isCompleted={Boolean(modProgress?.completado)}
+                onMarkAsViewed={() => markAsViewed(module.slug)}
+              />
+            );
+          })}
         </div>
       </main>
     </div>
   );
 }
-
