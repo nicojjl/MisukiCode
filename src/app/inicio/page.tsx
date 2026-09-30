@@ -29,7 +29,10 @@ export default function InicioPage() {
       {/* Barra de navegación superior del Dashboard */}
       <header className="w-full bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-6 sm:px-12 py-4 sticky top-0 z-20">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <Link href="/inicio" className="flex items-center gap-2.5">
+          <Link
+            href="/inicio"
+            className="flex items-center gap-2.5 hover:opacity-80 transition-opacity cursor-pointer"
+          >
             <span className="w-9 h-9 rounded-xl bg-slate-900 text-white font-black flex items-center justify-center text-lg shadow-sm">
               C
             </span>
