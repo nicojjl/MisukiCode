@@ -24,7 +24,7 @@ export function useProgress() {
 
   // Marcar módulo como visto manualmente por el usuario
   const markAsViewed = useCallback((moduleId: string) => {
-    setProgress((prev) => {
+    setProgress((prev: MizukiProgress) => {
       const current = prev[moduleId] || {
         visto: false,
         completado: false,
@@ -49,7 +49,7 @@ export function useProgress() {
 
   // Marcar módulo como completado por el motor de desafíos
   const markAsCompleted = useCallback((moduleId: string) => {
-    setProgress((prev) => {
+    setProgress((prev: MizukiProgress) => {
       const current = prev[moduleId] || {
         visto: true,
         completado: false,
