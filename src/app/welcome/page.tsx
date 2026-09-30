@@ -3,13 +3,49 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LEVELS } from '@/lib/levels';
+import { createClient } from '@/lib/supabase/client';
 
 export default function WelcomePage() {
   const router = useRouter();
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSelect = (id: string) => {
     setSelectedLevel(id);
+  };
+
+  const handleContinue = async () => {
+    if (!selectedLevel || loading) return;
+
+    setLoading(true);
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        // Usuario autenticado: persistir en base de datos
+        await supabase
+          .from('perfiles')
+          .update({ nivel: selectedLevel })
+          .eq('id', user.id);
+
+        // Fail-safe de respaldo: pasamos el nivel en la URL para que el Server Component
+        // de /inicio pueda auto-sanar si el update falló silenciosamente (p. ej. RLS)
+        router.push(`/inicio?nivel=${selectedLevel}`);
+      } else {
+        // Flujo invitado: viajamos directo al primer reto con el nivel en la query
+        // Sin contaminar localStorage con claves muertas redundantes
+        router.push(`/desafios/primer-reto?nivel=${selectedLevel}`);
+      }
+    } catch (err) {
+      console.error('Error al procesar selección de nivel:', err);
+      // Fallback seguro de navegación
+      router.push(`/desafios/primer-reto?nivel=${selectedLevel}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -67,19 +103,19 @@ export default function WelcomePage() {
           ))}
         </div>
 
-        {/* Botón Continuar (Guest Flow) */}
+        {/* Botón Continuar (Dual Flow) */}
         <div className="mt-12 w-full max-w-xs">
           <button
             type="button"
-            disabled={!selectedLevel}
-            onClick={() => selectedLevel && router.push(`/inicio?nivel=${selectedLevel}`)}
+            disabled={!selectedLevel || loading}
+            onClick={handleContinue}
             className={`w-full py-4 px-6 rounded-2xl font-black uppercase tracking-wider text-sm transition-all duration-200 ${
-              selectedLevel
+              selectedLevel && !loading
                 ? 'bg-violet-600 text-white shadow-[0_4px_0_0_#6d28d9] hover:bg-violet-500 active:translate-y-1 active:shadow-none cursor-pointer'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-[0_4px_0_0_#cbd5e1]'
             }`}
           >
-            Continuar
+            {loading ? 'Guardando...' : 'Continuar'}
           </button>
         </div>
       </div>

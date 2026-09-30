@@ -8,7 +8,13 @@ import { createServerClient } from "@supabase/ssr";
  * Cuartel General / Dashboard Principal (/inicio).
  * Server Component con control de acceso, saludo personalizado y selección de modos de aprendizaje.
  */
-export default async function InicioPage() {
+interface InicioPageProps {
+  searchParams?: {
+    nivel?: string;
+  };
+}
+
+export default async function InicioPage({ searchParams }: InicioPageProps) {
   const cookieStore = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,11 +39,28 @@ export default async function InicioPage() {
   }
 
   // Consulta a la tabla perfiles usando el user.id para obtener el nivel
-  const { data: profile } = await supabase
+  let { data: profile } = await supabase
     .from("perfiles")
     .select("nivel, ejercicios_completados")
     .eq("id", user.id)
     .single();
+
+  // Fail-Safe / Auto-sanación: Si el perfil en la BD no tiene nivel pero recibimos el nivel en searchParams,
+  // sanamos la BD desde el servidor (cubre fallos de actualización en cliente o RLS restrictivo)
+  if (!profile?.nivel && searchParams?.nivel) {
+    const { error: updateError } = await supabase
+      .from("perfiles")
+      .update({ nivel: searchParams.nivel })
+      .eq("id", user.id);
+
+    if (!updateError) {
+      profile = {
+        ...profile,
+        nivel: searchParams.nivel,
+        ejercicios_completados: profile?.ejercicios_completados ?? 0,
+      };
+    }
+  }
 
   // Control de Acceso (Guard): Si el usuario está logueado pero su nivel en la BD es null, forzar onboarding
   if (!profile?.nivel) {
@@ -136,7 +159,7 @@ export default async function InicioPage() {
 
           {/* Tarjeta 2: Desafíos (Diseño Secundario) */}
           <Link
-            href="/desafios"
+            href="/desafios/primer-reto"
             className="group flex flex-col justify-between p-6 sm:p-8 rounded-3xl bg-white border-2 border-slate-200 shadow-[0_4px_0_0_#e2e8f0] hover:border-slate-300 hover:-translate-y-1 hover:shadow-lg transition-all"
           >
             <div>

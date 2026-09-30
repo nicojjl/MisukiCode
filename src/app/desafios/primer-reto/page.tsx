@@ -84,16 +84,18 @@ function LessonContent() {
 
   return (
     <div className="h-screen w-full flex flex-col justify-between overflow-hidden bg-slate-50 relative">
-      {/* Botón temporal de prueba para simular ejercicio completado */}
-      <div className="fixed top-3 right-16 sm:right-20 z-40">
-        <button
-          type="button"
-          onClick={() => setShowSaveModal(true)}
-          className="text-xs font-bold text-amber-900 bg-amber-200 hover:bg-amber-300 border border-amber-400 py-1.5 px-3 rounded-full shadow-sm transition-all cursor-pointer"
-        >
-          TEST: Simular Ejercicio Completado
-        </button>
-      </div>
+      {/* Botón temporal de prueba para simular ejercicio completado (Solo visible en desarrollo) */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="fixed top-3 right-16 sm:right-20 z-40">
+          <button
+            type="button"
+            onClick={() => setShowSaveModal(true)}
+            className="text-xs font-bold text-amber-900 bg-amber-200 hover:bg-amber-300 border border-amber-400 py-1.5 px-3 rounded-full shadow-sm transition-all cursor-pointer"
+          >
+            TEST: Simular Ejercicio Completado
+          </button>
+        </div>
+      )}
 
       {/* Modal Guarda tu Progreso */}
       <SaveProgressModal
