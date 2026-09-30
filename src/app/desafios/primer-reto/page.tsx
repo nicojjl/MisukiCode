@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { MOCK_EXERCISES } from "@/data/mockExercises";
 import { useLesson } from "@/hooks/useLesson";
 import { useProgress } from "@/hooks/useProgress";
+import { getModuleProgressKey } from "@/lib/curriculum";
 
 function LessonContent() {
   const { markAsCompleted } = useProgress();
@@ -31,7 +32,7 @@ function LessonContent() {
   // Al completar la lección, guardamos automáticamente en localStorage
   useEffect(() => {
     if (isCompleted) {
-      markAsCompleted("modulo_5_punteros");
+      markAsCompleted(getModuleProgressKey(5));
     }
   }, [isCompleted, markAsCompleted]);
 

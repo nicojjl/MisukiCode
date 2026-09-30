@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { MODULES, type CurriculumModule } from "@/lib/curriculum";
+import { MODULES, type CurriculumModule, getModuleProgressKey } from "@/lib/curriculum";
 import { useProgress } from "@/hooks/useProgress";
 import { ModuleAnimation } from "@/components/ui/ModuleAnimation";
 
@@ -162,8 +162,11 @@ export default function ProgramaPage() {
         {/* Iteración de los 10 módulos en diseño zig-zag con espaciado amplio */}
         <div className="space-y-24 sm:space-y-32">
           {MODULES.map((module, index) => {
-            const moduleKey = `modulo_${module.id}`;
-            const modProgress = progress[moduleKey] || progress[String(module.id)];
+            const moduleKey = getModuleProgressKey(module.id);
+            const modProgress =
+              progress[moduleKey] ||
+              progress[String(module.id)] ||
+              Object.entries(progress).find(([key]) => key.startsWith(`${moduleKey}_`))?.[1];
             const color = MODULE_COLORS[(module.id - 1) % MODULE_COLORS.length];
             return (
               <ModuleSection

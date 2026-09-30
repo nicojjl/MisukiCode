@@ -11,6 +11,8 @@ export interface CurriculumModule {
   lessons: Lesson[];
 }
 
+export const getModuleProgressKey = (id: number | string): string => `modulo_${id}`;
+
 export const MODULES: CurriculumModule[] = [
   {
     id: 1,
