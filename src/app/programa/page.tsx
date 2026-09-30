@@ -2,147 +2,21 @@
 
 import React from "react";
 import Link from "next/link";
+import { MODULES, type CurriculumModule } from "@/lib/curriculum";
 import { useProgress } from "@/hooks/useProgress";
 import { ModuleAnimation } from "@/components/ui/ModuleAnimation";
 
-interface ModuleData {
-  id: number;
-  slug: string;
-  title: string;
-  color: string;
-  topics: string[];
-}
-
-/**
- * Los 10 módulos oficiales del currículo integral de C en MizukiCode.
- * Colores alternados de Tailwind para dinamismo visual estilo Duolingo.
- */
-const CURRICULUM_MODULES: ModuleData[] = [
-  {
-    id: 1,
-    slug: "modulo_1_fundamentos",
-    title: "Fundamentos del Lenguaje",
-    color: "text-emerald-500",
-    topics: [
-      "Estructura básica de un programa en C",
-      "Tipos de datos primitivos y modificadores",
-      "Variables, constantes y ámbito (scope)",
-      "Operadores aritméticos, lógicos y a nivel de bits",
-      "Entrada y salida estándar con printf() y scanf()",
-    ],
-  },
-  {
-    id: 2,
-    slug: "modulo_2_control_flujo",
-    title: "Control de Flujo",
-    color: "text-blue-500",
-    topics: [
-      "Estructuras condicionales (if, else if, else)",
-      "Sentencias de selección múltiple (switch / case)",
-      "Estructuras iterativas (while, do-while, for)",
-      "Instrucciones de salto y control (break, continue, goto)",
-    ],
-  },
-  {
-    id: 3,
-    slug: "modulo_3_modularidad_funciones",
-    title: "Modularidad y Funciones",
-    color: "text-purple-500",
-    topics: [
-      "Declaración, prototipos y definición de funciones",
-      "Paso de parámetros por valor y por referencia",
-      "Clases de almacenamiento (auto, register, static, extern)",
-      "Recursividad y gestión del Stack de llamadas",
-    ],
-  },
-  {
-    id: 4,
-    slug: "modulo_4_estructuras_datos_estaticas",
-    title: "Estructuras de Datos Estáticas",
-    color: "text-amber-500",
-    topics: [
-      "Arreglos unidimensionales y bidimensionales (matrices)",
-      "Cadenas de caracteres (strings y terminador nulo '\\0')",
-      "Funciones estándar de cadenas (string.h)",
-      "Memoria contigua y almacenamiento en Stack",
-    ],
-  },
-  {
-    id: 5,
-    slug: "modulo_5_punteros",
-    title: "Gestión de Memoria y Punteros (Nivel Intermedio)",
-    color: "text-rose-500",
-    topics: [
-      "Concepto de dirección de memoria y operador &",
-      "Declaración y desreferenciación de punteros (*)",
-      "Aritmética de punteros y navegación de memoria",
-      "Paso de arreglos y referencias a funciones",
-      "Punteros dobles y punteros a punteros (**)",
-    ],
-  },
-  {
-    id: 6,
-    slug: "modulo_6_tipos_definidos_usuario",
-    title: "Tipos de Datos Definidos por el Usuario",
-    color: "text-teal-500",
-    topics: [
-      "Estructuras (struct) y alineación en memoria (padding)",
-      "Uniones (union) y optimización de espacio",
-      "Definición de alias con typedef",
-      "Enumeraciones (enum) para código semántico y limpio",
-    ],
-  },
-  {
-    id: 7,
-    slug: "modulo_7_memoria_dinamica_algoritmia",
-    title: "Memoria Dinámica y Algoritmia (Nivel Avanzado)",
-    color: "text-indigo-500",
-    topics: [
-      "Asignación dinámica con malloc(), calloc(), realloc() y free()",
-      "Detección y prevención de fugas de memoria (memory leaks)",
-      "Estructuras enlazadas: Listas, Pilas, Colas y Árboles",
-      "Algoritmos de búsqueda y ordenamiento (Bubble, QuickSort, MergeSort)",
-    ],
-  },
-  {
-    id: 8,
-    slug: "modulo_8_gestion_archivos",
-    title: "Gestión de Archivos",
-    color: "text-orange-500",
-    topics: [
-      "Flujos de archivos (FILE*) y modos de apertura (fopen, fclose)",
-      "Lectura y escritura en archivos de texto (fprintf, fscanf, fgets)",
-      "Manejo de archivos binarios (fread, fwrite)",
-      "Posicionamiento y desplazamiento de puntero (fseek, ftell, rewind)",
-    ],
-  },
-  {
-    id: 9,
-    slug: "modulo_9_preprocesador",
-    title: "El Preprocesador de C",
-    color: "text-pink-500",
-    topics: [
-      "Directivas de inclusión (#include)",
-      "Definición de macros simples y parametrizadas (#define)",
-      "Compilación condicional (#ifdef, #ifndef, #endif)",
-      "Operadores de preprocesador (# y ##) y macros predefinidas",
-    ],
-  },
-  {
-    id: 10,
-    slug: "modulo_10_sistemas_entornos",
-    title: "Nivel Laboral: Sistemas y Entornos",
-    color: "text-cyan-500",
-    topics: [
-      "Punteros a funciones y callbacks",
-      "Manejo de errores, errno y señales del sistema (signal.h)",
-      "Llamadas al sistema operativo (POSIX / Win32 API)",
-      "Introducción al multihilo y concurrencia (pthreads)",
-      "Estándares del lenguaje (C99, C11, C17, C23)",
-      "Automatización de compilación con Makefiles",
-      "Depuración y análisis de memoria con GDB y Valgrind",
-    ],
-  },
+const MODULE_COLORS = [
+  "text-emerald-500",
+  "text-blue-500",
+  "text-purple-500",
+  "text-amber-500",
+  "text-rose-500",
+  "text-teal-500",
+  "text-indigo-500",
+  "text-orange-500",
+  "text-pink-500",
+  "text-cyan-500",
 ];
 
 /**
@@ -151,12 +25,14 @@ const CURRICULUM_MODULES: ModuleData[] = [
 function ModuleSection({
   module,
   index,
+  color,
   isViewed,
   isCompleted,
   onMarkAsViewed,
 }: {
-  module: ModuleData;
+  module: CurriculumModule;
   index: number;
+  color: string;
   isViewed: boolean;
   isCompleted: boolean;
   onMarkAsViewed: () => void;
@@ -186,14 +62,14 @@ function ModuleSection({
           ) : null}
         </div>
 
-        <h2 className={`text-3xl sm:text-4xl font-extrabold mb-4 tracking-tight ${module.color}`}>
+        <h2 className={`text-3xl sm:text-4xl font-extrabold mb-4 tracking-tight ${color}`}>
           {module.title}
         </h2>
         <ul className="space-y-2.5 text-slate-600 text-lg mb-6">
-          {module.topics.map((topic, i) => (
-            <li key={i} className="flex items-start gap-3">
-              <span className={`font-bold text-xl leading-none mt-1 ${module.color}`}>•</span>
-              <span>{topic}</span>
+          {module.lessons.map((lesson) => (
+            <li key={lesson.id} className="flex items-start gap-3">
+              <span className={`font-bold text-xl leading-none mt-1 ${color}`}>•</span>
+              <span>{lesson.title}</span>
             </li>
           ))}
         </ul>
@@ -233,7 +109,7 @@ function ModuleSection({
         ) : null}
 
         <div className="w-24 h-24 flex items-center justify-center bg-slate-50 rounded-xl border border-slate-100 shadow-sm">
-          <ModuleAnimation moduleId={module.slug} />
+          <ModuleAnimation moduleId={module.id} />
         </div>
       </div>
     </section>
@@ -242,7 +118,7 @@ function ModuleSection({
 
 /**
  * Página principal del Programa (/programa).
- * Exportada por defecto como componente React conectado al almacenamiento local.
+ * Syllabus público que itera sobre la única fuente de verdad (MODULES).
  */
 export default function ProgramaPage() {
   const { progress, markAsViewed } = useProgress();
@@ -285,16 +161,19 @@ export default function ProgramaPage() {
 
         {/* Iteración de los 10 módulos en diseño zig-zag con espaciado amplio */}
         <div className="space-y-24 sm:space-y-32">
-          {CURRICULUM_MODULES.map((module, index) => {
-            const modProgress = progress[module.slug] || progress[`modulo_${module.id}`];
+          {MODULES.map((module, index) => {
+            const moduleKey = `modulo_${module.id}`;
+            const modProgress = progress[moduleKey] || progress[String(module.id)];
+            const color = MODULE_COLORS[(module.id - 1) % MODULE_COLORS.length];
             return (
               <ModuleSection
                 key={module.id}
                 module={module}
                 index={index}
+                color={color}
                 isViewed={Boolean(modProgress?.visto)}
                 isCompleted={Boolean(modProgress?.completado)}
-                onMarkAsViewed={() => markAsViewed(module.slug)}
+                onMarkAsViewed={() => markAsViewed(moduleKey)}
               />
             );
           })}

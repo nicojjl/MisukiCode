@@ -43,8 +43,10 @@ export const ModuleAnimation: React.FC<ModuleAnimationProps> = ({
       return (
         <svg
           viewBox="0 0 64 64"
-          className={`${className} stroke-violet-500 stroke-[1.5] stroke-linecap-round stroke-linejoin-round`}
+          className={`${className} stroke-violet-500 stroke-[1.5]`}
           fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           {/* Marco de ventana de consola */}
           <rect
@@ -87,8 +89,10 @@ export const ModuleAnimation: React.FC<ModuleAnimationProps> = ({
       return (
         <svg
           viewBox="0 0 64 64"
-          className={`${className} stroke-violet-500 stroke-[1.5] stroke-linecap-round stroke-linejoin-round`}
+          className={`${className} stroke-violet-500 stroke-[1.5]`}
           fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           {/* Rombo de decisión condicional */}
           <path
@@ -141,8 +145,10 @@ export const ModuleAnimation: React.FC<ModuleAnimationProps> = ({
       return (
         <svg
           viewBox="0 0 64 64"
-          className={`${className} stroke-violet-500 stroke-[1.5] stroke-linecap-round stroke-linejoin-round`}
+          className={`${className} stroke-violet-500 stroke-[1.5]`}
           fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           {/* Engranaje 1 (Giro horario suave) */}
           <g className="animate-[spin_8s_linear_infinite] origin-[25px_27px]">
@@ -171,8 +177,10 @@ export const ModuleAnimation: React.FC<ModuleAnimationProps> = ({
       return (
         <svg
           viewBox="0 0 64 64"
-          className={`${className} stroke-violet-500 stroke-[1.5] stroke-linecap-round stroke-linejoin-round`}
+          className={`${className} stroke-violet-500 stroke-[1.5]`}
           fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           {/* Celdas contiguas de memoria (Array) */}
           <rect x="8" y="24" width="11" height="18" rx="2" className="fill-violet-50" />
@@ -210,8 +218,10 @@ export const ModuleAnimation: React.FC<ModuleAnimationProps> = ({
       return (
         <svg
           viewBox="0 0 64 64"
-          className={`${className} stroke-violet-500 stroke-[1.5] stroke-linecap-round stroke-linejoin-round`}
+          className={`${className} stroke-violet-500 stroke-[1.5]`}
           fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           {/* Caja de memoria destino */}
           <rect
@@ -257,8 +267,10 @@ export const ModuleAnimation: React.FC<ModuleAnimationProps> = ({
       return (
         <svg
           viewBox="0 0 64 64"
-          className={`${className} stroke-violet-500 stroke-[1.5] stroke-linecap-round stroke-linejoin-round`}
+          className={`${className} stroke-violet-500 stroke-[1.5]`}
           fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           {/* Contenedor principal de struct */}
           <rect
@@ -315,8 +327,10 @@ export const ModuleAnimation: React.FC<ModuleAnimationProps> = ({
       return (
         <svg
           viewBox="0 0 64 64"
-          className={`${className} stroke-violet-500 stroke-[1.5] stroke-linecap-round stroke-linejoin-round`}
+          className={`${className} stroke-violet-500 stroke-[1.5]`}
           fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           {/* Marco exterior del Heap */}
           <rect
@@ -367,8 +381,10 @@ export const ModuleAnimation: React.FC<ModuleAnimationProps> = ({
       return (
         <svg
           viewBox="0 0 64 64"
-          className={`${className} stroke-violet-500 stroke-[1.5] stroke-linecap-round stroke-linejoin-round`}
+          className={`${className} stroke-violet-500 stroke-[1.5]`}
           fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           {/* Nodo 1 */}
           <rect x="8" y="24" width="14" height="16" rx="3" className="fill-violet-50" />
@@ -409,8 +425,10 @@ export const ModuleAnimation: React.FC<ModuleAnimationProps> = ({
       return (
         <svg
           viewBox="0 0 64 64"
-          className={`${className} stroke-violet-500 stroke-[1.5] stroke-linecap-round stroke-linejoin-round`}
+          className={`${className} stroke-violet-500 stroke-[1.5]`}
           fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           {/* Hoja de documento con esquina doblada */}
           <path
@@ -446,8 +464,10 @@ export const ModuleAnimation: React.FC<ModuleAnimationProps> = ({
       return (
         <svg
           viewBox="0 0 64 64"
-          className={`${className} stroke-violet-500 stroke-[1.5] stroke-linecap-round stroke-linejoin-round`}
+          className={`${className} stroke-violet-500 stroke-[1.5]`}
           fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           {/* Diana / Retícula de depuración de GDB */}
           <circle cx="32" cy="32" r="20" className="fill-violet-50/50" />

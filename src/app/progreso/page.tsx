@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { MODULES } from "@/lib/curriculum";
+import { MZ_LEVEL_KEY } from "@/lib/store";
 
 const LEVEL_MAP: Record<string, number> = {
   principiante: 0,
@@ -29,7 +30,7 @@ export default function ProgresoPage() {
   // Leer nivel del usuario desde localStorage
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("mz_level");
+      const stored = localStorage.getItem(MZ_LEVEL_KEY);
       if (stored && stored in LEVEL_MAP) {
         setUserLevel(LEVEL_MAP[stored]);
       } else {

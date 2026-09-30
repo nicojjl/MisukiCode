@@ -192,24 +192,42 @@ export default function SandboxPage() {
                   </button>
                 </div>
 
-                {/* Botón verde brillante 'Compilar ▶' */}
-                <button
-                  type="button"
-                  disabled={isRunning}
-                  onClick={handleCompile}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  <span>{isRunning ? "Compilando..." : "Compilar"}</span>
-                  <span>▶</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {/* Botón gris 'Limpiar' */}
+                  <button
+                    type="button"
+                    onClick={() => setOutput("")}
+                    className="text-slate-600 hover:text-slate-900 bg-slate-200 hover:bg-slate-300 text-xs font-semibold py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer select-none"
+                    title="Limpiar consola"
+                  >
+                    Limpiar
+                  </button>
+
+                  {/* Botón verde brillante 'Compilar ▶' */}
+                  <button
+                    type="button"
+                    disabled={isRunning}
+                    onClick={handleCompile}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition-colors shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <span>{isRunning ? "Compilando..." : "Compilar"}</span>
+                    <span>▶</span>
+                  </button>
+                </div>
               </div>
 
               {/* Área de Salida */}
-              <div className="flex-1 bg-black text-green-400 font-mono text-sm p-4 overflow-y-auto">
-                <pre className="whitespace-pre-wrap font-mono leading-relaxed">
-                  {output}
-                </pre>
-              </div>
+              {activeConsoleTab === "io" ? (
+                <div className="flex-1 text-slate-500 p-4 font-sans text-sm">
+                  Interfaz de Entrada/Salida (stdin) en construcción...
+                </div>
+              ) : (
+                <div className="flex-1 bg-black text-green-400 font-mono text-sm p-4 overflow-y-auto">
+                  <pre className="whitespace-pre-wrap font-mono leading-relaxed">
+                    {output}
+                  </pre>
+                </div>
+              )}
             </section>
           </div>
         </div>
