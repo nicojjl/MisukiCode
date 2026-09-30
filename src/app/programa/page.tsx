@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useProgress } from "@/hooks/useProgress";
+import { ModuleAnimation } from "@/components/ui/ModuleAnimation";
 
 interface ModuleData {
   id: number;
@@ -219,11 +220,21 @@ function ModuleSection({
         </div>
       </div>
 
-      {/* Columna Visual (Placeholder) */}
-      <div className="w-64 h-64 rounded-3xl bg-slate-200 border-4 border-dashed border-slate-300 flex items-center justify-center shrink-0 shadow-inner">
-        <span className="text-slate-400 font-extrabold text-xl text-center px-4">
-          {isCompleted ? "🏆 Completado" : isViewed ? "📖 Visto" : "Pronto..."}
-        </span>
+      {/* Columna Visual Temática con Micro-animación SVG */}
+      <div className="w-56 h-56 sm:w-64 sm:h-64 rounded-3xl bg-violet-50/50 border-2 border-violet-100 flex flex-col items-center justify-center shrink-0 shadow-sm relative p-4">
+        {isCompleted ? (
+          <span className="absolute top-3 right-3 text-[11px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full z-10">
+            🏆 Completado
+          </span>
+        ) : isViewed ? (
+          <span className="absolute top-3 right-3 text-[11px] font-black uppercase tracking-wider text-teal-700 bg-teal-100 px-2.5 py-0.5 rounded-full z-10">
+            📖 Visto
+          </span>
+        ) : null}
+
+        <div className="w-24 h-24 flex items-center justify-center bg-slate-50 rounded-xl border border-slate-100 shadow-sm">
+          <ModuleAnimation moduleId={module.slug} />
+        </div>
       </div>
     </section>
   );
