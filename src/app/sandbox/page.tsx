@@ -82,25 +82,21 @@ export default function SandboxPage() {
     setIsError(false);
   };
 
-  // 5. Compilación con detección de errores (código vacío)
+  // 5. Compilación con detección de errores (Fix de Ejecución Fantasma)
   const handleCompile = () => {
-    setIsRunning(true);
     setActiveConsoleTab("console");
 
-    // Error simulado si el código fuente está vacío o en blanco
-    if (!code.trim()) {
-      setTimeout(() => {
-        setOutput(
-          ">_ Live Console\n[Error de compilación en main.c]:\nEl archivo de código está vacío.\nSe requiere una función principal 'int main()' para compilar el programa."
-        );
-        setIsError(true);
-        setIsRunning(false);
-      }, 300);
+    // Validación inicial estricta: previene compilación fantasma si está vacío
+    if (!code || code.trim() === "") {
+      setOutput(">_ Error: No hay código para compilar. El archivo está vacío.");
+      setIsError(true);
+      setIsRunning(false);
       return;
     }
 
-    setOutput(">_ Live Console\n[WASM] Compilando...");
+    setIsRunning(true);
     setIsError(false);
+    setOutput(">_ Live Console\n[WASM] Compilando...");
 
     setTimeout(() => {
       setOutput(
@@ -158,12 +154,12 @@ export default function SandboxPage() {
 
           {/* 2. Layout Tri-Panel */}
           <div className="flex h-full overflow-hidden flex-1">
-            {/* 3. Panel Izquierdo (Explorador de Archivos - Single-file mode) */}
+            {/* 3. Panel Izquierdo (Explorador de Archivos - Estética VS Code) */}
             <aside className="w-64 border-r border-slate-200 bg-slate-50 flex flex-col shrink-0 select-none">
-              {/* Header del Explorador */}
-              <div className="text-xs font-bold text-slate-500 p-3 flex justify-between items-center border-b border-slate-200/60">
+              {/* Header del Explorador con SVGs Minimalistas */}
+              <div className="text-xs font-bold text-slate-500 px-3 py-2.5 flex justify-between items-center border-b border-slate-200/60">
                 <span className="tracking-wider">EXPLORER</span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
                   {/* Input de archivo oculto */}
                   <input
                     type="file"
@@ -172,39 +168,161 @@ export default function SandboxPage() {
                     accept=".c,.h,.txt"
                     className="hidden"
                   />
-                  {/* Botón Subir */}
+
+                  {/* 1. Ícono 'Nuevo Archivo' */}
+                  <button
+                    type="button"
+                    onClick={() => setCode(INITIAL_CODE)}
+                    title="Nuevo Archivo (Plantilla inicial)"
+                    className="p-1 rounded hover:bg-slate-200/70 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* 2. Ícono 'Subir Archivo' */}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    title="Subir archivo .c local"
-                    className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-200/80 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition-colors text-[11px] font-semibold cursor-pointer"
+                    title="Subir Archivo"
+                    className="p-1 rounded hover:bg-slate-200/70 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
                   >
-                    <span>⬆️</span>
-                    <span>.c</span>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                      />
+                    </svg>
                   </button>
-                  {/* Botón Descargar */}
+
+                  {/* 3. Ícono 'Descargar' */}
                   <button
                     type="button"
                     onClick={handleDownload}
                     title="Descargar main.c"
-                    className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-200/80 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition-colors text-[11px] font-semibold cursor-pointer"
+                    className="p-1 rounded hover:bg-slate-200/70 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
                   >
-                    <span>⬇️</span>
-                    <span>.c</span>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                      />
+                    </svg>
                   </button>
                 </div>
               </div>
 
-              {/* Lista de Archivos (Único elemento fijo main.c) */}
-              <div className="py-2 flex flex-col">
-                <div className="flex items-center justify-between px-3 py-1.5 bg-violet-100 text-violet-700 text-sm border-l-2 border-violet-500 font-mono font-medium">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-violet-600">C</span>
-                    <span>main.c</span>
-                  </div>
-                  <span className="text-[10px] uppercase font-bold text-violet-600 bg-violet-200/60 px-1.5 py-0.5 rounded">
-                    Activo
+              {/* Árbol de Archivos (File Tree Visual Jerárquico) */}
+              <div className="py-2 flex flex-col font-sans select-none text-[13px]">
+                {/* Carpeta includes/ (cerrada) */}
+                <div className="pl-4 py-1.5 flex items-center gap-1.5 text-slate-500 hover:bg-slate-100/80 cursor-pointer transition-colors">
+                  <svg
+                    className="w-3 h-3 text-slate-400 shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                  <svg
+                    className="w-3.5 h-3.5 text-amber-500/80 shrink-0"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                  </svg>
+                  <span className="font-medium text-slate-500">includes/</span>
+                </div>
+
+                {/* Carpeta src/ (abierta con chevron hacia abajo) */}
+                <div className="pl-4 py-1.5 flex items-center gap-1.5 text-slate-800 hover:bg-slate-100/80 cursor-pointer transition-colors">
+                  <svg
+                    className="w-3 h-3 text-slate-500 shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                  <svg
+                    className="w-3.5 h-3.5 text-amber-500 shrink-0"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1H8a3 3 0 00-3 3v4.5A1.5 1.5 0 013.5 16H2V6zm4 7a2 2 0 012-2h10a2 2 0 012 2v3a2 2 0 01-2 2H8a2 2 0 01-2-2v-3z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span className="font-semibold text-slate-800">src/</span>
+                </div>
+
+                {/* Archivo activo: main.c (dentro de src/ con mayor indentación pl-8) */}
+                <div className="pl-8 py-1.5 flex items-center gap-2 bg-violet-100/50 border-l-2 border-violet-500 text-violet-700 font-mono font-medium cursor-pointer transition-colors">
+                  <span className="text-[11px] font-bold text-violet-600 font-mono w-3.5 text-center">
+                    C
                   </span>
+                  <span>main.c</span>
+                </div>
+
+                {/* Archivo inactivo: Makefile (en la raíz) */}
+                <div className="pl-[26px] py-1.5 flex items-center gap-2 text-slate-500 hover:bg-slate-100/80 cursor-pointer transition-colors">
+                  <svg
+                    className="w-3.5 h-3.5 text-slate-400 shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                  <span className="font-mono text-slate-500">Makefile</span>
                 </div>
               </div>
             </aside>
