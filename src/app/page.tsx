@@ -1,7 +1,7 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
+import type { Metadata } from "next";
+import { HeroHeadline } from "@/components/ui/HeroHeadline";
 
 /**
  * Exactamente 30 frases persuasivas sobre C, punteros y memoria.
@@ -40,19 +40,18 @@ const HERO_PHRASES: string[] = [
   "Tu puerta de entrada a la ingeniería de software profunda.",
 ];
 
+export const metadata: Metadata = {
+  title: "MizukiCode — Aprende C con interactividad visual",
+  description: "Domina punteros, gestión dinámica de memoria y estructuras de datos con retroalimentación visual al instante.",
+  openGraph: { images: ["/og-hero.png"] },
+};
+
 /**
  * Landing Page Principal (src/app/page.tsx).
  * Portal de inicio Hero de dos columnas con selector dinámico de frases
  * y simulación de la ventana macOS para codigo.c.
  */
-export default function LandingPage() {
-  const [currentPhrase, setCurrentPhrase] = useState<string>("");
-
-  useEffect(() => {
-    const randomIndex = Math.floor(Math.random() * HERO_PHRASES.length);
-    setCurrentPhrase(HERO_PHRASES[randomIndex]);
-  }, []);
-
+export default function Page() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-8 font-sans text-slate-800">
       <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
@@ -71,13 +70,10 @@ export default function LandingPage() {
 
           {/* Título Principal Dinámico con Min-Height para evitar saltos de layout */}
           <div className="min-h-[140px] sm:min-h-[160px] flex items-center mb-4">
-            <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-[1.12]">
-              {currentPhrase || (
-                <span className="opacity-0 select-none">
-                  Domina los punteros sin perder la cabeza.
-                </span>
-              )}
-            </h1>
+            <HeroHeadline
+              phrases={HERO_PHRASES}
+              fallback="Domina los punteros sin perder la cabeza."
+            />
           </div>
 
           {/* Párrafo Descriptivo */}
@@ -87,26 +83,26 @@ export default function LandingPage() {
 
           {/* Stack Vertical de Botones */}
           <div className="flex flex-col gap-3.5 w-full sm:w-80">
-            {/* 1. Primario 'Empieza Ya' -> Conduce al Registro */}
+            {/* 1. Primario 'Empieza gratis' -> Conduce al Registro con fondo morado sólido */}
             <Link
               href="/registro"
-              className="w-full py-4 px-6 rounded-2xl font-black text-center text-white bg-emerald-500 shadow-[0_4px_0_0_#059669] hover:bg-emerald-400 active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider text-base block"
+              className="w-full py-4 px-6 rounded-2xl font-black text-center text-white bg-purple-600 shadow-[0_4px_0_0_#7e22ce] hover:bg-purple-500 active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider text-base block"
             >
-              Empieza Ya
+              Empieza gratis
             </Link>
 
-            {/* 2. Secundario 'Ya tengo cuenta' */}
+            {/* 2. Secundario 'Iniciar sesión' con menor contraste */}
             <Link
-              href="#"
-              className="w-full py-3.5 px-6 rounded-2xl font-bold text-center text-slate-700 bg-white border-2 border-slate-200 shadow-[0_3px_0_0_#e2e8f0] hover:bg-slate-50 hover:border-slate-300 active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wider text-sm block"
+              href="/registro"
+              className="w-full py-3.5 px-6 rounded-2xl font-bold text-center bg-slate-100 text-slate-600 hover:bg-slate-200 active:translate-y-0.5 transition-all uppercase tracking-wider text-sm block"
             >
-              Ya tengo cuenta
+              Iniciar sesión
             </Link>
 
-            {/* 3. Fantasma/Texto 'Ver Programa' -> Conduce a /programa */}
+            {/* 3. Enlace 'Ver Programa' -> Adaptado al tono morado del proyecto */}
             <Link
               href="/programa"
-              className="w-full py-2.5 px-6 text-center text-slate-400 hover:text-slate-800 font-semibold tracking-wide transition-colors text-sm block"
+              className="font-semibold text-purple-600 underline-offset-4 hover:underline transition-all text-center block text-sm py-1"
             >
               Ver Programa
             </Link>
@@ -209,3 +205,4 @@ export default function LandingPage() {
     </div>
   );
 }
+

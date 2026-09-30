@@ -1,14 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
-const levels = [
-  { id: 'principiante', title: 'Principiante', filledStars: 0 },
-  { id: 'basico', title: 'Básico', filledStars: 1 },
-  { id: 'mediano', title: 'Mediano', filledStars: 2 },
-  { id: 'avanzado', title: 'Avanzado', filledStars: 3 },
-];
+import { LEVELS } from '@/lib/levels';
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -19,8 +13,8 @@ export default function WelcomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans text-slate-800">
-      <div className="w-full max-w-4xl flex flex-col items-center">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 sm:p-10 font-sans text-slate-800">
+      <div className="w-full max-w-6xl flex flex-col items-center">
         {/* Encabezado */}
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight text-center mb-3">
           ¡Bienvenido Usuario!
@@ -29,32 +23,39 @@ export default function WelcomePage() {
           Elige tu nivel de conocimiento
         </p>
 
-        {/* Tarjetas de Nivel */}
+        {/* Tarjetas de Nivel con data-[selected] */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
-          {levels.map((level) => (
+          {LEVELS.map((level) => (
             <button
               key={level.id}
               type="button"
               onClick={() => handleSelect(level.id)}
-              className={`group flex flex-col items-center justify-between p-6 bg-white rounded-3xl border-4 transition-all duration-200 cursor-pointer min-h-[160px] ${
-                selectedLevel === level.id
-                  ? 'border-purple-500 shadow-[0_8px_0_0_#a855f7] -translate-y-2'
-                  : 'border-slate-200 shadow-[0_8px_0_0_#e2e8f0] hover:border-slate-300 hover:-translate-y-1 hover:shadow-[0_12px_0_0_#cbd5e1]'
-              }`}
+              data-selected={selectedLevel === level.id}
+              className="group rounded-2xl border-2 border-zinc-200 bg-white p-6 text-left transition hover:border-violet-300 hover:shadow-lg data-[selected=true]:border-violet-500 data-[selected=true]:bg-violet-50 data-[selected=true]:shadow-md data-[selected=true]:shadow-violet-500/10 flex flex-col justify-between"
             >
-              <span className="text-lg sm:text-xl font-black text-slate-800 mb-6 group-hover:text-purple-600 transition-colors">
-                {level.title}
-              </span>
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <h3 className="text-lg font-black text-slate-900 group-hover:text-violet-600 transition-colors">
+                    {level.label}
+                  </h3>
+                  <span className="text-xs font-bold text-violet-700 bg-violet-100 px-2.5 py-1 rounded-full whitespace-nowrap">
+                    {level.modules}
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed mb-6">
+                  {level.summary}
+                </p>
+              </div>
 
-              {/* Estrellas moradas (SVG) */}
-              <div className="flex items-center gap-1.5">
+              {/* Componente de Estrellas */}
+              <div className="flex items-center gap-1.5 pt-2">
                 {[1, 2, 3].map((starIndex) => (
                   <svg
                     key={starIndex}
-                    className={`w-7 h-7 transition-colors ${
-                      starIndex <= level.filledStars
-                        ? 'fill-purple-500 text-purple-500'
-                        : 'fill-slate-200 text-slate-200'
+                    className={`w-6 h-6 transition-colors ${
+                      starIndex <= level.stars
+                        ? 'fill-violet-500 text-violet-500'
+                        : 'fill-zinc-200 text-zinc-200'
                     }`}
                     viewBox="0 0 24 24"
                   >
@@ -66,7 +67,7 @@ export default function WelcomePage() {
           ))}
         </div>
 
-        {/* Botón Continuar */}
+        {/* Botón Continuar (Guest Flow) */}
         <div className="mt-12 w-full max-w-xs">
           <button
             type="button"
@@ -74,7 +75,7 @@ export default function WelcomePage() {
             onClick={() => selectedLevel && router.push(`/inicio?nivel=${selectedLevel}`)}
             className={`w-full py-4 px-6 rounded-2xl font-black uppercase tracking-wider text-sm transition-all duration-200 ${
               selectedLevel
-                ? 'bg-purple-600 text-white shadow-[0_4px_0_0_#7e22ce] hover:bg-purple-500 active:translate-y-1 active:shadow-none cursor-pointer'
+                ? 'bg-violet-600 text-white shadow-[0_4px_0_0_#6d28d9] hover:bg-violet-500 active:translate-y-1 active:shadow-none cursor-pointer'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-[0_4px_0_0_#cbd5e1]'
             }`}
           >
@@ -85,4 +86,3 @@ export default function WelcomePage() {
     </div>
   );
 }
-

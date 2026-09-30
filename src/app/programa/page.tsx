@@ -166,7 +166,7 @@ function ModuleSection({ module, index }: { module: ModuleData; index: number })
 
       {/* Columna Visual (Placeholder) */}
       <div className="w-64 h-64 rounded-3xl bg-slate-200 border-4 border-dashed border-slate-300 flex items-center justify-center shrink-0 shadow-inner">
-        <span className="text-slate-400 font-extrabold text-xl select-none">
+        <span className="text-slate-400 font-extrabold text-xl">
           Pronto...
         </span>
       </div>
@@ -180,20 +180,20 @@ function ModuleSection({ module, index }: { module: ModuleData; index: number })
  */
 export default function ProgramaPage() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-24">
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-24 selection:bg-emerald-200 selection:text-emerald-900">
       {/* Barra de navegación superior con botón Volver */}
       <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-6 sm:px-12 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link
             href="/"
-            className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-2 cursor-pointer select-none"
           >
             ← Volver al inicio
           </Link>
 
           <Link
             href="/welcome"
-            className="px-5 py-2.5 rounded-xl font-bold text-sm text-white bg-emerald-500 shadow-[0_3px_0_0_#059669] hover:bg-emerald-400 active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wide"
+            className="px-5 py-2.5 rounded-xl font-bold text-sm text-white bg-emerald-500 shadow-[0_3px_0_0_#059669] hover:bg-emerald-400 active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wide select-none"
           >
             Probar Lección
           </Link>
