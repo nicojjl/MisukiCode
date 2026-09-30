@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { LessonContainer } from "@/components/layout/LessonContainer";
 import { Footer } from "@/components/layout/Footer";
@@ -9,11 +10,10 @@ import { Button } from "@/components/ui/Button";
 import { MOCK_EXERCISES } from "@/data/mockExercises";
 import { useLesson } from "@/hooks/useLesson";
 
-/**
- * Cuartel General de la Lección Interactiva (/inicio).
- * Orquestador interactivo que consume el hook useLesson y gestiona la sesión de aprendizaje.
- */
-export default function InicioPage() {
+function LessonContent() {
+  const searchParams = useSearchParams();
+  const nivel = searchParams.get("nivel");
+
   const {
     currentExercise,
     currentIndex,
@@ -36,6 +36,8 @@ export default function InicioPage() {
     : 0;
 
   const isInputEmpty = userInput.trim().length === 0;
+
+  console.log("Nivel recibido:", nivel);
 
   return (
     <div className="h-screen w-full flex flex-col justify-between overflow-hidden bg-slate-50">
@@ -87,3 +89,22 @@ export default function InicioPage() {
     </div>
   );
 }
+
+/**
+ * Cuartel General de la Lección Interactiva (/inicio).
+ * Envuelve el contenido en Suspense para manejar de forma segura useSearchParams en Next.js App Router.
+ */
+export default function InicioPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-screen w-full flex items-center justify-center bg-slate-50 text-slate-500 font-semibold">
+          Cargando...
+        </div>
+      }
+    >
+      <LessonContent />
+    </Suspense>
+  );
+}
+
