@@ -1,18 +1,20 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { LessonContainer } from "@/components/layout/LessonContainer";
 import { Footer } from "@/components/layout/Footer";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { SaveProgressModal } from "@/components/ui/SaveProgressModal";
 import { MOCK_EXERCISES } from "@/data/mockExercises";
 import { useLesson } from "@/hooks/useLesson";
 
 function LessonContent() {
   const searchParams = useSearchParams();
   const nivel = searchParams.get("nivel");
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   const {
     currentExercise,
@@ -40,7 +42,24 @@ function LessonContent() {
   console.log("Nivel recibido:", nivel);
 
   return (
-    <div className="h-screen w-full flex flex-col justify-between overflow-hidden bg-slate-50">
+    <div className="h-screen w-full flex flex-col justify-between overflow-hidden bg-slate-50 relative">
+      {/* Botón temporal de prueba para simular ejercicio completado */}
+      <div className="fixed top-3 right-16 sm:right-20 z-40">
+        <button
+          type="button"
+          onClick={() => setShowSaveModal(true)}
+          className="text-xs font-bold text-amber-900 bg-amber-200 hover:bg-amber-300 border border-amber-400 py-1.5 px-3 rounded-full shadow-sm transition-all cursor-pointer"
+        >
+          TEST: Simular Ejercicio Completado
+        </button>
+      </div>
+
+      {/* Modal Guarda tu Progreso */}
+      <SaveProgressModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        nivel={nivel}
+      />
       {/* 1. Barra Superior con Progreso Reactivo, botón de salida y Avatar de usuario */}
       <Header progress={progress} />
 
