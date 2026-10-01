@@ -18,7 +18,7 @@ self.addEventListener('message', async (e: any) => {
   const runArgs = ['-f', 'laberinto.txt', '-mode', 'path', '-sx', '0', '-sy', '0', '-tx', '3', '-ty', '3'];
 
   try {
-    const response = await fetch('https://emacs.piston.rs/api/v2/execute', {
+    const response = await fetch(self.location.origin + '/api/compile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -30,6 +30,11 @@ self.addEventListener('message', async (e: any) => {
     });
 
     const result = await response.json();
+
+    if (result.error) {
+      self.postMessage({ type: 'error', output: result.error });
+      return;
+    }
 
     if (result.compile && result.compile.code !== 0) {
       self.postMessage({ type: 'error', output: '[ERROR DE COMPILACIÓN]\n' + result.compile.output });
