@@ -1,48 +1,44 @@
-import JSCPP from 'jscpp';
-
-self.addEventListener('message', (e: MessageEvent) => {
+self.addEventListener('message', async (e: any) => {
   const { files, activeFileId } = e.data;
 
-  // 1. Identificar el código principal (asumimos que el usuario compila el archivo activo o busca main.c)
-  const mainFile = files.find((f: any) => f.name === 'main.c') || files.find((f: any) => f.id === activeFileId);
+  const mainFile = files.find((f: any) => f.name === 'main.c' || f.id === activeFileId);
   if (!mainFile) {
-    self.postMessage({ type: 'error', output: 'Error: No se encontró main.c ni un archivo activo para compilar.' });
+    self.postMessage({ type: 'error', output: 'Error: No se encontró main.c' });
     return;
   }
 
-  // 2. Mapear el sistema de archivos virtual para las directivas #include
-  const includesMap: Record<string, string> = {};
-  files.forEach((f: any) => {
-    if (f.id !== mainFile.id) {
-      // jscpp busca los includes por nombre de archivo
-      includesMap[f.name] = f.content;
-    }
-  });
+  // Formateamos los archivos virtuales para la API de Piston
+  const pistonFiles = files.map((f: any) => ({
+    name: f.name,
+    content: f.content
+  }));
 
-  let outputBuffer = '';
-
-  // 3. Configurar el entorno de C
-  const config = {
-    stdio: {
-      write: (str: string) => { outputBuffer += str; }
-    },
-    includes: includesMap,
-    maxTimeout: 2800 // Evita que un while(1) congele el worker eternamente
-  };
+  // NOTA: Para el desafío del laberinto, simulamos los argumentos de terminal.
+  // En el futuro, esto debería venir de un input en la UI.
+  const runArgs = ['-f', 'laberinto.txt', '-mode', 'path', '-sx', '0', '-sy', '0', '-tx', '3', '-ty', '3'];
 
   try {
-    // 4. Ejecutar el código C
-    JSCPP.run(mainFile.content, '', config);
-    self.postMessage({ 
-      type: 'success', 
-      output: outputBuffer || '\n(Programa finalizado exitosamente sin salida de consola)' 
+    const response = await fetch('https://emacs.piston.rs/api/v2/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        language: 'c',
+        version: '10.2.0',
+        files: pistonFiles,
+        args: runArgs
+      })
     });
-  } catch (err: any) {
-    // 5. Capturar errores reales de sintaxis (ej. falta de punto y coma, variables no declaradas)
-    self.postMessage({ 
-      type: 'error', 
-      output: outputBuffer + '\n\n[ERROR DE COMPILACIÓN]:\n' + (err?.message || String(err))
-    });
+
+    const result = await response.json();
+
+    if (result.compile && result.compile.code !== 0) {
+      self.postMessage({ type: 'error', output: '[ERROR DE COMPILACIÓN]\n' + result.compile.output });
+    } else if (result.run && result.run.code !== 0) {
+      self.postMessage({ type: 'error', output: '[ERROR DE EJECUCIÓN (Runtime)]\n' + result.run.output });
+    } else {
+      self.postMessage({ type: 'success', output: result.run.output || '\n(Programa finalizado sin salida)' });
+    }
+  } catch (error: any) {
+    self.postMessage({ type: 'error', output: 'Error de red al contactar al compilador: ' + error.message });
   }
 });
-
