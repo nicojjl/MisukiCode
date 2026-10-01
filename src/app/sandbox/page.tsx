@@ -59,6 +59,7 @@ const INITIAL_OUTPUT = `>_ Live Console
 Click 'Compilar' para ejecutar...`;
 
 export default function SandboxPage() {
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [folders, setFolders] = useState<ProjectFolder[]>(INITIAL_FOLDERS);
   const [files, setFiles] = useState<ProjectFile[]>(INITIAL_FILES);
   const [activeFileId, setActiveFileId] = useState<string | null>(INITIAL_ACTIVE_FILE_ID);
@@ -392,7 +393,7 @@ export default function SandboxPage() {
     setIsError(false);
   };
 
-  // 12. Compilación con detección de errores
+  // 12. Compilación con Web Worker aislado y Kill Switch de seguridad
   const handleCompile = () => {
     setActiveConsoleTab("console");
 
@@ -415,16 +416,42 @@ export default function SandboxPage() {
     setIsRunning(true);
     setIsError(false);
     setOutput(
-      `>_ Live Console\n[WASM] Compilando ${targetFile.name} y vinculando módulos del proyecto...`
+      `>_ Live Console\n[WASM Worker] Compilando ${targetFile.name} y procesando proyecto...`
     );
 
-    setTimeout(() => {
+    // Instanciar el Web Worker
+    const worker = new Worker(
+      new URL("../../workers/compiler.worker.ts", import.meta.url)
+    );
+
+    // Kill Switch de seguridad: 3000ms
+    const timer = setTimeout(() => {
+      worker.terminate();
+      setOutput(">_ Error: Timeout de ejecución. Posible bucle infinito detectado.");
+      setIsError(true);
+      setIsRunning(false);
+    }, 3000);
+
+    worker.onmessage = (e: MessageEvent) => {
+      clearTimeout(timer);
+      const { output: workerOutput } = e.data;
       setOutput(
-        `>_ Live Console\n[WASM] Compilando ${targetFile.name} y vinculando módulos del proyecto...\n¡Hola, MizukiCode!\n\nPrograma finalizado con código de salida 0.`
+        `>_ Live Console\n${workerOutput}\n\nPrograma finalizado con código de salida 0.`
       );
       setIsError(false);
       setIsRunning(false);
-    }, 600);
+      worker.terminate();
+    };
+
+    worker.onerror = (err) => {
+      clearTimeout(timer);
+      setOutput(`>_ Error: ${err.message || "Fallo inesperado de ejecución en el worker"}`);
+      setIsError(true);
+      setIsRunning(false);
+      worker.terminate();
+    };
+
+    worker.postMessage({ files, mainFileId: activeFileId });
   };
 
   const toggleFolder = (folderId: string) => {
@@ -482,13 +509,13 @@ export default function SandboxPage() {
           style={{ paddingLeft: `${paddingLeft}px` }}
           className={`pr-2 py-1.5 flex items-center justify-between cursor-pointer transition-colors ${
             isSelected
-              ? "bg-slate-200/50 text-slate-900"
-              : "text-slate-700 hover:bg-slate-100"
+              ? "bg-slate-200/50 dark:bg-slate-700/60 text-slate-900 dark:text-slate-100 font-medium"
+              : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/40"
           }`}
         >
           <div className="flex items-center gap-1.5 min-w-0">
             <svg
-              className={`w-3 h-3 text-slate-400 shrink-0 transition-transform duration-150 ${
+              className={`w-3 h-3 text-slate-400 dark:text-slate-500 shrink-0 transition-transform duration-150 ${
                 isExpanded ? "rotate-90" : ""
               }`}
               fill="none"
@@ -541,8 +568,8 @@ export default function SandboxPage() {
                   style={{ paddingLeft: `${filePadding}px` }}
                   className={`pr-2 py-1.5 flex items-center justify-between cursor-pointer transition-colors ${
                     isActive
-                      ? "bg-violet-100/70 border-l-2 border-violet-500 text-violet-800 font-medium"
-                      : "text-slate-600 hover:bg-slate-100/80"
+                      ? "bg-violet-100/70 dark:bg-violet-950/60 border-l-2 border-violet-500 text-violet-800 dark:text-violet-300 font-medium"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-700/40"
                   }`}
                 >
                   <div className="flex items-center gap-2 truncate">
@@ -576,41 +603,58 @@ export default function SandboxPage() {
           </span>
         </Link>
 
-        <Link
-          href="/inicio"
-          className="text-xs font-bold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-200 px-3.5 py-1.5 rounded-xl border border-slate-200 shadow-xs transition-all"
-        >
-          ← Volver al Dashboard
-        </Link>
+        <div className="flex items-center gap-2.5">
+          {/* Botón de Modo Oscuro / Claro */}
+          <button
+            type="button"
+            onClick={() => setIsDarkMode((prev) => !prev)}
+            title={isDarkMode ? "Cambiar a Modo Claro" : "Cambiar a Modo Oscuro"}
+            className="p-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shadow-xs flex items-center justify-center"
+          >
+            {isDarkMode ? (
+              <span className="text-base leading-none">☀️</span>
+            ) : (
+              <span className="text-base leading-none">🌙</span>
+            )}
+          </button>
+
+          <Link
+            href="/inicio"
+            className="text-xs font-bold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-200 px-3.5 py-2 rounded-xl border border-slate-200 shadow-xs transition-all"
+          >
+            ← Volver al Dashboard
+          </Link>
+        </div>
       </header>
 
       {/* 1. Contenedor Principal (Estilo Ventana de Sistema Operativo) */}
-      <div className="h-[calc(100vh-80px)] w-full max-w-[1600px] mx-auto p-4 flex flex-col">
-        <div className="rounded-3xl border-2 border-slate-200 bg-white overflow-hidden flex flex-col shadow-2xl h-full">
-          {/* Top Bar (Window Chrome) */}
-          <div className="h-12 bg-slate-50 border-b border-slate-200 flex items-center justify-between px-4 shrink-0 relative select-none">
-            {/* Botones de macOS a la izquierda */}
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-red-400 inline-block" />
-              <span className="w-3 h-3 rounded-full bg-amber-400 inline-block" />
-              <span className="w-3 h-3 rounded-full bg-green-400 inline-block" />
+      <div className={isDarkMode ? "dark" : ""}>
+        <div className="h-[calc(100vh-80px)] w-full max-w-[1600px] mx-auto p-4 flex flex-col">
+          <div className="rounded-3xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden flex flex-col shadow-2xl h-full">
+            {/* Top Bar (Window Chrome) */}
+            <div className="h-12 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 shrink-0 relative select-none">
+              {/* Botones de macOS a la izquierda */}
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-red-400 inline-block" />
+                <span className="w-3 h-3 rounded-full bg-amber-400 inline-block" />
+                <span className="w-3 h-3 rounded-full bg-green-400 inline-block" />
+              </div>
+
+              {/* Título centrado */}
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-400 tracking-wide">
+                MizukiCode Sandbox — Multi-File Project
+              </span>
+
+              {/* Espaciador para centrado óptico */}
+              <div className="w-14" />
             </div>
 
-            {/* Título centrado */}
-            <span className="text-xs font-semibold text-slate-400 tracking-wide">
-              MizukiCode Sandbox — Multi-File Project
-            </span>
-
-            {/* Espaciador para centrado óptico */}
-            <div className="w-14" />
-          </div>
-
-          {/* 2. Layout Tri-Panel */}
-          <div className="flex h-full overflow-hidden flex-1">
-            {/* 3. Panel Izquierdo (Explorador Interactivo Multi-Archivo) */}
-            <aside className="w-64 border-r border-slate-200 bg-slate-50 flex flex-col shrink-0 select-none">
-              {/* Header del Explorador con Acciones Globales (Raíz) */}
-              <div className="text-xs font-bold text-slate-500 px-3 py-2.5 flex justify-between items-center border-b border-slate-200/60">
+            {/* 2. Layout Tri-Panel */}
+            <div className="flex h-full overflow-hidden flex-1">
+              {/* 3. Panel Izquierdo (Explorador Interactivo Multi-Archivo) */}
+              <aside className="w-64 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex flex-col shrink-0 select-none">
+                {/* Header del Explorador con Acciones Globales (Raíz) */}
+                <div className="text-xs font-bold text-slate-500 dark:text-slate-400 px-3 py-2.5 flex justify-between items-center border-b border-slate-200/60 dark:border-slate-700">
                 <span className="tracking-wider">EXPLORER</span>
                 <div className="flex items-center gap-1">
                   {/* Input de archivo oculto para subida */}
@@ -627,7 +671,7 @@ export default function SandboxPage() {
                     type="button"
                     onClick={handleCreateFileRoot}
                     title="Nuevo Archivo en Raíz"
-                    className="p-1 rounded hover:bg-slate-200/70 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+                    className="p-1 rounded hover:bg-slate-200/70 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer transition-colors"
                   >
                     <svg
                       className="w-4 h-4"
@@ -649,7 +693,7 @@ export default function SandboxPage() {
                     type="button"
                     onClick={handleCreateFolderRoot}
                     title="Nueva Carpeta en Raíz"
-                    className="p-1 rounded hover:bg-slate-200/70 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+                    className="p-1 rounded hover:bg-slate-200/70 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer transition-colors"
                   >
                     <svg
                       className="w-4 h-4"
@@ -671,7 +715,7 @@ export default function SandboxPage() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     title="Subir Archivo al proyecto"
-                    className="p-1 rounded hover:bg-slate-200/70 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+                    className="p-1 rounded hover:bg-slate-200/70 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer transition-colors"
                   >
                     <svg
                       className="w-4 h-4"
@@ -693,7 +737,7 @@ export default function SandboxPage() {
                     type="button"
                     onClick={handleDownloadZip}
                     title="Descargar Proyecto ZIP (mizukicode_project.zip)"
-                    className="p-1 rounded hover:bg-slate-200/70 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+                    className="p-1 rounded hover:bg-slate-200/70 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer transition-colors"
                   >
                     <svg
                       className="w-4 h-4"
@@ -734,8 +778,8 @@ export default function SandboxPage() {
                         onContextMenu={(e) => handleContextMenu(e, file.id, "file")}
                         className={`pl-5 pr-2 py-1.5 flex items-center justify-between cursor-pointer transition-colors ${
                           isActive
-                            ? "bg-violet-100/70 border-l-2 border-violet-500 text-violet-800 font-medium"
-                            : "text-slate-600 hover:bg-slate-100/80"
+                            ? "bg-violet-100/70 dark:bg-violet-950/60 border-l-2 border-violet-500 text-violet-800 dark:text-violet-300 font-medium"
+                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-700/40"
                         }`}
                       >
                         <div className="flex items-center gap-2 truncate">
@@ -751,16 +795,16 @@ export default function SandboxPage() {
             </aside>
 
             {/* 4. Panel Central (Editor de Código Multi-Archivo) */}
-            <main className="flex-1 flex flex-col min-w-0 bg-white">
+            <main className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900">
               {/* Barra de Pestañas (Tabs) */}
-              <div className="h-10 border-b border-slate-200 flex bg-slate-50 shrink-0 overflow-x-auto">
+              <div className="h-10 border-b border-slate-200 dark:border-slate-700 flex bg-slate-50 dark:bg-slate-800/60 shrink-0 overflow-x-auto">
                 {activeFile ? (
-                  <div className="px-4 py-2 bg-white border-r border-slate-200 text-sm text-slate-800 flex items-center gap-2 font-mono border-t-2 border-t-violet-500 font-medium select-none h-full">
+                  <div className="px-4 py-2 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2 font-mono border-t-2 border-t-violet-500 font-medium select-none h-full">
                     {renderFileBadge(activeFile.name)}
                     <span>{activeFile.name}</span>
                   </div>
                 ) : (
-                  <div className="px-4 py-2 text-xs text-slate-400 italic flex items-center h-full">
+                  <div className="px-4 py-2 text-xs text-slate-400 dark:text-slate-500 italic flex items-center h-full">
                     Selecciona un archivo del explorador
                   </div>
                 )}
@@ -772,7 +816,7 @@ export default function SandboxPage() {
                 onChange={(e) => handleContentChange(e.target.value)}
                 spellCheck={false}
                 disabled={!activeFile}
-                className="w-full flex-1 p-4 font-mono text-sm resize-none outline-none text-slate-800 bg-white leading-relaxed disabled:bg-slate-50 disabled:text-slate-400"
+                className="w-full flex-1 p-4 font-mono text-sm resize-none outline-none text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-900 leading-relaxed disabled:bg-slate-50 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500"
                 placeholder={
                   activeFile
                     ? `Escribe tu código en ${activeFile.name}...`
@@ -782,17 +826,17 @@ export default function SandboxPage() {
             </main>
 
             {/* 5. Panel Derecho (Consola y Ejecución) */}
-            <section className="w-96 border-l border-slate-200 bg-slate-50 flex flex-col shrink-0">
+            <section className="w-96 border-l border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex flex-col shrink-0">
               {/* Barra de Pestañas de Consola */}
-              <div className="h-10 border-b border-slate-200 flex items-center justify-between px-3 bg-slate-50 shrink-0">
+              <div className="h-10 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-3 bg-slate-50 dark:bg-slate-900 shrink-0">
                 <div className="flex items-center gap-1 select-none">
                   <button
                     type="button"
                     onClick={() => setActiveConsoleTab("console")}
                     className={`px-2.5 py-1 text-xs font-bold rounded-md transition-colors cursor-pointer ${
                       activeConsoleTab === "console"
-                        ? "bg-white text-slate-800 shadow-2xs border border-slate-200"
-                        : "text-slate-500 hover:text-slate-800"
+                        ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 shadow-2xs border border-slate-200 dark:border-slate-700"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                     }`}
                   >
                     Console
@@ -802,8 +846,8 @@ export default function SandboxPage() {
                     onClick={() => setActiveConsoleTab("io")}
                     className={`px-2.5 py-1 text-xs font-bold rounded-md transition-colors cursor-pointer ${
                       activeConsoleTab === "io"
-                        ? "bg-white text-slate-800 shadow-2xs border border-slate-200"
-                        : "text-slate-500 hover:text-slate-800"
+                        ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 shadow-2xs border border-slate-200 dark:border-slate-700"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                     }`}
                   >
                     I/O
@@ -815,7 +859,7 @@ export default function SandboxPage() {
                   <button
                     type="button"
                     onClick={handleClear}
-                    className="text-slate-600 hover:text-slate-900 bg-slate-200 hover:bg-slate-300 text-xs font-semibold py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer select-none"
+                    className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs font-semibold py-1.5 px-2.5 rounded-lg transition-colors cursor-pointer select-none"
                     title="Limpiar consola"
                   >
                     Limpiar
@@ -836,7 +880,7 @@ export default function SandboxPage() {
 
               {/* Área de Salida */}
               {activeConsoleTab === "io" ? (
-                <div className="flex-1 text-slate-500 p-4 font-sans text-sm">
+                <div className="flex-1 text-slate-500 dark:text-slate-400 p-4 font-sans text-sm">
                   Interfaz de Entrada/Salida (stdin) en construcción...
                 </div>
               ) : (
@@ -854,12 +898,15 @@ export default function SandboxPage() {
           </div>
         </div>
       </div>
+    </div>
 
       {/* Menú Contextual Flotante (Clic Derecho) */}
       {contextMenu.visible && (
         <div
           style={{ top: contextMenu.y, left: contextMenu.x }}
-          className="fixed z-50 w-48 bg-white border border-slate-200 rounded-md shadow-xl py-1 text-sm text-slate-700 select-none animate-in fade-in duration-75"
+          className={`fixed z-50 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-xl py-1 text-sm text-slate-700 dark:text-slate-200 select-none animate-in fade-in duration-75 ${
+            isDarkMode ? "dark" : ""
+          }`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Opciones exclusivas cuando se hace clic derecho en una carpeta */}
@@ -868,7 +915,7 @@ export default function SandboxPage() {
               <button
                 type="button"
                 onClick={() => handleCreateInFolder("file")}
-                className="w-full text-left px-4 py-2 hover:bg-violet-50 hover:text-violet-700 transition-colors flex items-center gap-2 cursor-pointer"
+                className="w-full text-left px-4 py-2 hover:bg-violet-50 dark:hover:bg-slate-700 hover:text-violet-700 dark:hover:text-violet-300 transition-colors flex items-center gap-2 cursor-pointer"
               >
                 <span>📄</span>
                 <span>Nuevo Archivo</span>
@@ -876,12 +923,12 @@ export default function SandboxPage() {
               <button
                 type="button"
                 onClick={() => handleCreateInFolder("folder")}
-                className="w-full text-left px-4 py-2 hover:bg-violet-50 hover:text-violet-700 transition-colors flex items-center gap-2 cursor-pointer"
+                className="w-full text-left px-4 py-2 hover:bg-violet-50 dark:hover:bg-slate-700 hover:text-violet-700 dark:hover:text-violet-300 transition-colors flex items-center gap-2 cursor-pointer"
               >
                 <span>📁</span>
                 <span>Nueva Carpeta</span>
               </button>
-              <hr className="my-1 border-slate-200" />
+              <hr className="my-1 border-slate-200 dark:border-slate-700" />
             </>
           )}
 
@@ -889,7 +936,7 @@ export default function SandboxPage() {
           <button
             type="button"
             onClick={handleRename}
-            className="w-full text-left px-4 py-2 hover:bg-violet-50 hover:text-violet-700 transition-colors flex items-center gap-2 cursor-pointer"
+            className="w-full text-left px-4 py-2 hover:bg-violet-50 dark:hover:bg-slate-700 hover:text-violet-700 dark:hover:text-violet-300 transition-colors flex items-center gap-2 cursor-pointer"
           >
             <span>✏️</span>
             <span>Renombrar</span>
@@ -897,7 +944,7 @@ export default function SandboxPage() {
           <button
             type="button"
             onClick={handleDelete}
-            className="w-full text-left px-4 py-2 hover:bg-red-50 hover:text-red-600 transition-colors text-red-500 flex items-center gap-2 cursor-pointer"
+            className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 dark:hover:text-red-400 transition-colors text-red-500 flex items-center gap-2 cursor-pointer"
           >
             <span>🗑️</span>
             <span>Eliminar</span>
@@ -907,3 +954,4 @@ export default function SandboxPage() {
     </div>
   );
 }
+
