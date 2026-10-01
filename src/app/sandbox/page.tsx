@@ -35,7 +35,7 @@ interface ContextMenuState {
 const DEFAULT_MAIN_C = `#include <stdio.h>
 
 int main() {
-    printf("¡Hola, MizukiCode!\\n");
+    printf("Hola, MizukiCode!\\n");
     return 0;
 }
 `;
@@ -54,9 +54,6 @@ const INITIAL_FILES: ProjectFile[] = [
 ];
 
 const INITIAL_ACTIVE_FILE_ID = "file_main_c";
-
-const INITIAL_OUTPUT = `>_ Live Console
-Click 'Compilar' para ejecutar...`;
 
 export default function SandboxPage() {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
@@ -77,8 +74,13 @@ export default function SandboxPage() {
     targetType: null,
   });
 
-  const [output, setOutput] = useState<string>(INITIAL_OUTPUT);
-  const [isError, setIsError] = useState<boolean>(false);
+  const [consoleOutput, setConsoleOutput] = useState<{
+    text: string;
+    type: "info" | "success" | "error";
+  }>({
+    text: ">_ Live Console\nListo para compilar.",
+    type: "info",
+  });
   const [activeConsoleTab, setActiveConsoleTab] = useState<"console" | "io">("console");
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
@@ -389,8 +391,7 @@ export default function SandboxPage() {
   };
 
   const handleClear = () => {
-    setOutput("");
-    setIsError(false);
+    setConsoleOutput({ text: "", type: "info" });
   };
 
   // 12. Compilación con Web Worker aislado y Kill Switch de seguridad
@@ -403,21 +404,21 @@ export default function SandboxPage() {
     const codeToCompile = targetFile?.content || "";
 
     if (!targetFile || !codeToCompile || codeToCompile.trim() === "") {
-      setOutput(
-        targetFile
+      setConsoleOutput({
+        text: targetFile
           ? `>_ Error: No hay código para compilar. '${targetFile.name}' está vacío.`
-          : ">_ Error: No hay código para compilar. El archivo está vacío."
-      );
-      setIsError(true);
+          : ">_ Error: No hay código para compilar. El archivo está vacío.",
+        type: "error",
+      });
       setIsRunning(false);
       return;
     }
 
     setIsRunning(true);
-    setIsError(false);
-    setOutput(
-      `>_ Live Console\n[WASM Worker] Compilando ${targetFile.name} y procesando proyecto...`
-    );
+    setConsoleOutput({
+      text: `>_ Live Console\n[JSCPP] Compilando ${targetFile.name}...`,
+      type: "info",
+    });
 
     // Instanciar el Web Worker
     const worker = new Worker(
@@ -427,31 +428,34 @@ export default function SandboxPage() {
     // Kill Switch de seguridad: 3000ms
     const timer = setTimeout(() => {
       worker.terminate();
-      setOutput(">_ Error: Timeout de ejecución. Posible bucle infinito detectado.");
-      setIsError(true);
+      setConsoleOutput({
+        text: ">_ Error: Timeout de ejecución. Posible bucle infinito detectado.",
+        type: "error",
+      });
       setIsRunning(false);
     }, 3000);
 
     worker.onmessage = (e: MessageEvent) => {
       clearTimeout(timer);
-      const { output: workerOutput } = e.data;
-      setOutput(
-        `>_ Live Console\n${workerOutput}\n\nPrograma finalizado con código de salida 0.`
-      );
-      setIsError(false);
+      setConsoleOutput({
+        text: e.data.output,
+        type: e.data.type,
+      });
       setIsRunning(false);
       worker.terminate();
     };
 
     worker.onerror = (err) => {
       clearTimeout(timer);
-      setOutput(`>_ Error: ${err.message || "Fallo inesperado de ejecución en el worker"}`);
-      setIsError(true);
+      setConsoleOutput({
+        text: `>_ Error en Worker: ${err.message || "Fallo inesperado de ejecución en el worker"}`,
+        type: "error",
+      });
       setIsRunning(false);
       worker.terminate();
     };
 
-    worker.postMessage({ files, mainFileId: activeFileId });
+    worker.postMessage({ files, activeFileId });
   };
 
   const toggleFolder = (folderId: string) => {
@@ -886,11 +890,15 @@ export default function SandboxPage() {
               ) : (
                 <div
                   className={`flex-1 bg-black font-mono text-sm p-4 overflow-y-auto ${
-                    isError ? "text-red-400" : "text-green-400"
+                    consoleOutput.type === "error"
+                      ? "text-red-400"
+                      : consoleOutput.type === "success"
+                      ? "text-green-400"
+                      : "text-slate-400"
                   }`}
                 >
                   <pre className="whitespace-pre-wrap font-mono leading-relaxed">
-                    {output}
+                    {consoleOutput.text}
                   </pre>
                 </div>
               )}
