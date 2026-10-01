@@ -172,7 +172,52 @@ export default function SandboxPage() {
     });
   };
 
-  // 5. Acción Renombrar
+  // 5. Crear elemento anidado dentro de una carpeta específica desde el menú contextual
+  const handleCreateInFolder = (type: "file" | "folder") => {
+    const parentFolderId = contextMenu.targetId;
+    setContextMenu((prev) => ({ ...prev, visible: false }));
+    if (!parentFolderId) return;
+
+    if (type === "file") {
+      const name = window.prompt("Nombre del archivo (ej. header.h):");
+      if (!name || !name.trim()) return;
+
+      const trimmedName = name.trim();
+      const newFile: ProjectFile = {
+        id: `file_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        name: trimmedName,
+        content: trimmedName.endsWith(".h")
+          ? `#ifndef ${trimmedName.replace(/[^a-zA-Z0-9]/g, "_").toUpperCase()}\n#define ${trimmedName.replace(/[^a-zA-Z0-9]/g, "_").toUpperCase()}\n\n// Prototipos y definiciones\n\n#endif\n`
+          : "",
+        parentId: parentFolderId,
+      };
+
+      setFiles((prev) => [...prev, newFile]);
+      setActiveFileId(newFile.id);
+      setExpandedFolders((prev) => ({ ...prev, [parentFolderId]: true }));
+      setSelectedFolderId(parentFolderId);
+    } else {
+      const name = window.prompt("Nombre de la carpeta:");
+      if (!name || !name.trim()) return;
+
+      const trimmedName = name.trim();
+      const newFolder: ProjectFolder = {
+        id: `folder_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        name: trimmedName,
+        parentId: parentFolderId,
+      };
+
+      setFolders((prev) => [...prev, newFolder]);
+      setExpandedFolders((prev) => ({
+        ...prev,
+        [parentFolderId]: true,
+        [newFolder.id]: true,
+      }));
+      setSelectedFolderId(newFolder.id);
+    }
+  };
+
+  // 6. Acción Renombrar
   const handleRename = () => {
     const { targetId, targetType } = contextMenu;
     setContextMenu((prev) => ({ ...prev, visible: false }));
@@ -203,7 +248,7 @@ export default function SandboxPage() {
     }
   };
 
-  // 6. Acción Eliminar
+  // 7. Acción Eliminar
   const handleDelete = () => {
     const { targetId, targetType } = contextMenu;
     setContextMenu((prev) => ({ ...prev, visible: false }));
@@ -245,9 +290,9 @@ export default function SandboxPage() {
     }
   };
 
-  // 7. Crear Nuevo Archivo interactivo
-  const handleCreateFile = () => {
-    const name = window.prompt("Nombre del nuevo archivo (ej. utils.h, Makefile, helpers.c):");
+  // 8. Crear Nuevo Archivo en la raíz del proyecto
+  const handleCreateFileRoot = () => {
+    const name = window.prompt("Nombre del nuevo archivo (ej. main.c, Makefile):");
     if (!name || !name.trim()) return;
 
     const trimmedName = name.trim();
@@ -257,18 +302,15 @@ export default function SandboxPage() {
       content: trimmedName.endsWith(".h")
         ? `#ifndef ${trimmedName.replace(/[^a-zA-Z0-9]/g, "_").toUpperCase()}\n#define ${trimmedName.replace(/[^a-zA-Z0-9]/g, "_").toUpperCase()}\n\n// Prototipos y definiciones\n\n#endif\n`
         : "",
-      parentId: selectedFolderId,
+      parentId: null,
     };
 
     setFiles((prev) => [...prev, newFile]);
     setActiveFileId(newFile.id);
-    if (selectedFolderId) {
-      setExpandedFolders((prev) => ({ ...prev, [selectedFolderId]: true }));
-    }
   };
 
-  // 8. Crear Nueva Carpeta interactiva
-  const handleCreateFolder = () => {
+  // 9. Crear Nueva Carpeta en la raíz del proyecto
+  const handleCreateFolderRoot = () => {
     const name = window.prompt("Nombre de la nueva carpeta (ej. includes, lib):");
     if (!name || !name.trim()) return;
 
@@ -284,7 +326,7 @@ export default function SandboxPage() {
     setSelectedFolderId(newFolder.id);
   };
 
-  // 9. Subir Archivo local (.c, .h, .txt, Makefile)
+  // 10. Subir Archivo local (.c, .h, .txt, Makefile)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -310,7 +352,7 @@ export default function SandboxPage() {
     e.target.value = "";
   };
 
-  // 10. Exportar Proyecto Completo a ZIP con JSZip
+  // 11. Exportar Proyecto Completo a ZIP con JSZip
   const handleDownloadZip = async () => {
     try {
       const zip = new JSZip();
@@ -350,7 +392,7 @@ export default function SandboxPage() {
     setIsError(false);
   };
 
-  // 11. Compilación con detección de errores
+  // 12. Compilación con detección de errores
   const handleCompile = () => {
     setActiveConsoleTab("console");
 
@@ -423,6 +465,101 @@ export default function SandboxPage() {
     );
   };
 
+  // Renderizado recursivo de carpetas y archivos con sangría jerárquica
+  const renderFolderItem = (folder: ProjectFolder, level: number = 0) => {
+    const isExpanded = Boolean(expandedFolders[folder.id]);
+    const folderFiles = files.filter((f) => f.parentId === folder.id);
+    const subfolders = folders.filter((f) => f.parentId === folder.id);
+    const isSelected = selectedFolderId === folder.id;
+    const paddingLeft = 12 + level * 14;
+
+    return (
+      <div key={folder.id} className="flex flex-col">
+        {/* Cabecera de la carpeta (con onContextMenu) */}
+        <div
+          onClick={() => toggleFolder(folder.id)}
+          onContextMenu={(e) => handleContextMenu(e, folder.id, "folder")}
+          style={{ paddingLeft: `${paddingLeft}px` }}
+          className={`pr-2 py-1.5 flex items-center justify-between cursor-pointer transition-colors ${
+            isSelected
+              ? "bg-slate-200/50 text-slate-900"
+              : "text-slate-700 hover:bg-slate-100"
+          }`}
+        >
+          <div className="flex items-center gap-1.5 min-w-0">
+            <svg
+              className={`w-3 h-3 text-slate-400 shrink-0 transition-transform duration-150 ${
+                isExpanded ? "rotate-90" : ""
+              }`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+            <svg
+              className="w-3.5 h-3.5 text-amber-500 shrink-0"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              {isExpanded ? (
+                <path
+                  fillRule="evenodd"
+                  d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1H8a3 3 0 00-3 3v4.5A1.5 1.5 0 013.5 16H2V6zm4 7a2 2 0 012-2h10a2 2 0 012 2v3a2 2 0 01-2 2H8a2 2 0 01-2-2v-3z"
+                  clipRule="evenodd"
+                />
+              ) : (
+                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+              )}
+            </svg>
+            <span className="font-semibold truncate">
+              {folder.name}/
+            </span>
+          </div>
+        </div>
+
+        {/* Contenido expandido: subcarpetas y archivos */}
+        {isExpanded && (
+          <div className="flex flex-col">
+            {subfolders.map((sub) => renderFolderItem(sub, level + 1))}
+            {folderFiles.map((file) => {
+              const isActive = file.id === activeFileId;
+              const filePadding = paddingLeft + 16;
+              return (
+                <div
+                  key={file.id}
+                  onClick={() => {
+                    setActiveFileId(file.id);
+                    setSelectedFolderId(folder.id);
+                  }}
+                  onContextMenu={(e) => handleContextMenu(e, file.id, "file")}
+                  style={{ paddingLeft: `${filePadding}px` }}
+                  className={`pr-2 py-1.5 flex items-center justify-between cursor-pointer transition-colors ${
+                    isActive
+                      ? "bg-violet-100/70 border-l-2 border-violet-500 text-violet-800 font-medium"
+                      : "text-slate-600 hover:bg-slate-100/80"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    {renderFileBadge(file.name)}
+                    <span className="truncate font-mono">
+                      {file.name}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans">
       {/* Barra de Navegación Externa Superior */}
@@ -472,7 +609,7 @@ export default function SandboxPage() {
           <div className="flex h-full overflow-hidden flex-1">
             {/* 3. Panel Izquierdo (Explorador Interactivo Multi-Archivo) */}
             <aside className="w-64 border-r border-slate-200 bg-slate-50 flex flex-col shrink-0 select-none">
-              {/* Header del Explorador con Acciones Interactivas */}
+              {/* Header del Explorador con Acciones Globales (Raíz) */}
               <div className="text-xs font-bold text-slate-500 px-3 py-2.5 flex justify-between items-center border-b border-slate-200/60">
                 <span className="tracking-wider">EXPLORER</span>
                 <div className="flex items-center gap-1">
@@ -485,11 +622,11 @@ export default function SandboxPage() {
                     className="hidden"
                   />
 
-                  {/* 1. Nuevo Archivo */}
+                  {/* 1. Nuevo Archivo en Raíz */}
                   <button
                     type="button"
-                    onClick={handleCreateFile}
-                    title="Nuevo Archivo"
+                    onClick={handleCreateFileRoot}
+                    title="Nuevo Archivo en Raíz"
                     className="p-1 rounded hover:bg-slate-200/70 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
                   >
                     <svg
@@ -507,11 +644,11 @@ export default function SandboxPage() {
                     </svg>
                   </button>
 
-                  {/* 2. Nueva Carpeta */}
+                  {/* 2. Nueva Carpeta en Raíz */}
                   <button
                     type="button"
-                    onClick={handleCreateFolder}
-                    title="Nueva Carpeta"
+                    onClick={handleCreateFolderRoot}
+                    title="Nueva Carpeta en Raíz"
                     className="p-1 rounded hover:bg-slate-200/70 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
                   >
                     <svg
@@ -577,96 +714,12 @@ export default function SandboxPage() {
 
               {/* Árbol de Archivos Interactivo con Soporte de Clic Derecho */}
               <div className="py-2 flex flex-col font-sans select-none text-[13px] overflow-y-auto flex-1">
-                {/* Carpetas y sus archivos anidados */}
-                {folders.map((folder) => {
-                  const isExpanded = Boolean(expandedFolders[folder.id]);
-                  const folderFiles = files.filter((f) => f.parentId === folder.id);
-                  const isSelected = selectedFolderId === folder.id;
+                {/* Carpetas en la raíz (renderizado jerárquico) */}
+                {folders
+                  .filter((f) => !f.parentId)
+                  .map((folder) => renderFolderItem(folder, 0))}
 
-                  return (
-                    <div key={folder.id} className="flex flex-col">
-                      {/* Cabecera de la carpeta (con onContextMenu) */}
-                      <div
-                        onClick={() => toggleFolder(folder.id)}
-                        onContextMenu={(e) => handleContextMenu(e, folder.id, "folder")}
-                        className={`pl-3 pr-2 py-1.5 flex items-center justify-between cursor-pointer transition-colors ${
-                          isSelected
-                            ? "bg-slate-200/50 text-slate-900"
-                            : "text-slate-700 hover:bg-slate-100"
-                        }`}
-                      >
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <svg
-                            className={`w-3 h-3 text-slate-400 shrink-0 transition-transform duration-150 ${
-                              isExpanded ? "rotate-90" : ""
-                            }`}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
-                          <svg
-                            className="w-3.5 h-3.5 text-amber-500 shrink-0"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            {isExpanded ? (
-                              <path
-                                fillRule="evenodd"
-                                d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1H8a3 3 0 00-3 3v4.5A1.5 1.5 0 013.5 16H2V6zm4 7a2 2 0 012-2h10a2 2 0 012 2v3a2 2 0 01-2 2H8a2 2 0 01-2-2v-3z"
-                                clipRule="evenodd"
-                              />
-                            ) : (
-                              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                            )}
-                          </svg>
-                          <span className="font-semibold truncate">
-                            {folder.name}/
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Archivos contenidos en la carpeta (con onContextMenu) */}
-                      {isExpanded && (
-                        <div className="flex flex-col">
-                          {folderFiles.map((file) => {
-                            const isActive = file.id === activeFileId;
-                            return (
-                              <div
-                                key={file.id}
-                                onClick={() => {
-                                  setActiveFileId(file.id);
-                                  setSelectedFolderId(folder.id);
-                                }}
-                                onContextMenu={(e) => handleContextMenu(e, file.id, "file")}
-                                className={`pl-7 pr-2 py-1.5 flex items-center justify-between cursor-pointer transition-colors ${
-                                  isActive
-                                    ? "bg-violet-100/70 border-l-2 border-violet-500 text-violet-800 font-medium"
-                                    : "text-slate-600 hover:bg-slate-100/80"
-                                }`}
-                              >
-                                <div className="flex items-center gap-2 truncate">
-                                  {renderFileBadge(file.name)}
-                                  <span className="truncate font-mono">
-                                    {file.name}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {/* Archivos en la raíz (con onContextMenu) */}
+                {/* Archivos en la raíz */}
                 {files
                   .filter((f) => !f.parentId)
                   .map((file) => {
@@ -809,6 +862,30 @@ export default function SandboxPage() {
           className="fixed z-50 w-48 bg-white border border-slate-200 rounded-md shadow-xl py-1 text-sm text-slate-700 select-none animate-in fade-in duration-75"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Opciones exclusivas cuando se hace clic derecho en una carpeta */}
+          {contextMenu.targetType === "folder" && (
+            <>
+              <button
+                type="button"
+                onClick={() => handleCreateInFolder("file")}
+                className="w-full text-left px-4 py-2 hover:bg-violet-50 hover:text-violet-700 transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <span>📄</span>
+                <span>Nuevo Archivo</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCreateInFolder("folder")}
+                className="w-full text-left px-4 py-2 hover:bg-violet-50 hover:text-violet-700 transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <span>📁</span>
+                <span>Nueva Carpeta</span>
+              </button>
+              <hr className="my-1 border-slate-200" />
+            </>
+          )}
+
+          {/* Opciones de Renombrar y Eliminar */}
           <button
             type="button"
             onClick={handleRename}
